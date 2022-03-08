@@ -9,4 +9,3 @@
 * [Technical Essays](technical-essays.md)
 * [Other Essays](other-essays/README.md)
   * [信息论学习](other-essays/xin-xi-lun-xue-xi.md)
-* [其他](https://app.gitbook.com/s/8SaPuScYeMsOv8hjTUDs/)
