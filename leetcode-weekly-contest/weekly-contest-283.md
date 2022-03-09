@@ -104,39 +104,31 @@ description: https://leetcode-cn.com/contest/weekly-contest-283/
 {% endhint %}
 
 ```java
-     public TreeNode createBinaryTree(int[][] descriptions) {
-        Map<Integer, int[]> map = new HashMap<>();
+      public TreeNode createBinaryTree(int[][] descriptions) {
+        Map<Integer, TreeNode> map = new HashMap<>();
         Set<Integer> set=new HashSet<>();
         for (int[] description : descriptions) {
-            if (!map.containsKey(description[0])) map.put(description[0], new int[2]);
-            map.get(description[0])[description[2]] = description[1];
-            set.add(description[1]);
+            if (!map.containsKey(description[0])) {
+                map.put(description[0], new TreeNode(description[0]));
+            }
+            if (!map.containsKey(description[1])) {
+                map.put(description[1], new TreeNode(description[1]));
+            }
+            TreeNode parent = map.get(description[0]);
+            TreeNode child = map.get(description[1]);
+            if (description[2] == 1) {
+                parent.left = child;
+            } else {
+                parent.right = child;
+            }
+            set.add(child.val);
         }
-        int rootV=-1;
         for (int[] description : descriptions) {
             if(!set.contains(description[0])){
-                rootV=description[0];
-                break;
+                return map.get(description[0]);
             }
         }
-      TreeNode root=new TreeNode(rootV);  
-      Queue<TreeNode> queue=new LinkedList<>();
-      queue.add(root);
-      while (!queue.isEmpty()){
-          TreeNode poll = queue.poll();
-          int[] aDefault = map.getOrDefault(poll.val, new int[2]);
-         if(aDefault[1]>0){
-           TreeNode node=new TreeNode(aDefault[1]);  
-           poll.left=node;
-           queue.add(node);
-         }
-         if(aDefault[0]>0){
-             TreeNode node=new TreeNode(aDefault[0]);
-             poll.right=node;
-             queue.add(node);   
-         }
-      }
-      return root;
+        return null;
     }
 ```
 
