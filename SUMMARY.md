@@ -7,6 +7,7 @@
   * [Weekly Contest 284](leetcode-weekly-contest/weekly-contest-284.md)
 * [Article Translation](article-translation/README.md)
   * [OpenTracing语义规范](article-translation/opentracing-yu-yi-gui-fan.md)
-* [Technical Essays](technical-essays.md)
+* [Technical Essays](technical-essays/README.md)
+  * [应用可观测性](technical-essays/ying-yong-ke-guan-ce-xing.md)
 * [Other Essays](other-essays/README.md)
   * [信息论学习](other-essays/xin-xi-lun-xue-xi.md)
