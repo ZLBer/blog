@@ -29,3 +29,9 @@ jdwp是调试器和java虚拟机之间用来调试交流的一种协议。可以
 * [Java Debug Wire Protocol](https://docs.oracle.com/javase/8/docs/technotes/guides/jpda/jdwp-spec.html)
 
 然后IDE还启动了一个java agent: `debugger-agent.jar`，主要的工作是通过agent来完成的，这里不介绍java agent相关的东西。
+
+com.sun.jdi是官方提供的debug工具包
+
+[https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-debugging-for-beginners/](https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-debugging-for-beginners/)
+
+[https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-stepping-through-the-code-lines/](https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-stepping-through-the-code-lines/)
