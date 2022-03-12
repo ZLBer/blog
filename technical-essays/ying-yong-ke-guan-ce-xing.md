@@ -4,7 +4,7 @@ description: Application observability
 
 # 应用可观测性
 
-最近在看Skywalking的源码，感觉有必要了解一些OpenTracing和OpenTelemetry。
+最近在看Skywalking的源码，感觉有必要学习和整理一些OpenTracing、OpenTelemetry和OpenMetrics的知识。
 
 ### OpenTracing
 
