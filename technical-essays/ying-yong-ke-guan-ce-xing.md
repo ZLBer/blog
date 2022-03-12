@@ -33,3 +33,14 @@ description: Application observability
 
 OpenTelemetry的一个核心概念是Collector，可以和应用集成部署，也可以单独部署，Collector主要负责接收(receiver)、处理(processor)、导出(exporter)观测数据，比如可以接收Skywalking上报的数据，并导出到Skywalking的OAP，只需要适配相应的接口即可，可以看到[其github的库](https://github.com/open-telemetry/opentelemetry-collector-contrib)已经有许多组件进行适配了。
 
+### OpenMetrics
+
+OpenTelemetry其实相当于包含了OpenMetrics，至少是符合OpenMetrics的模型。OpenMetrics定了个指标的采集格式:Gauge、Counter、Histogram、Summary等，可以去了解下这些格式。
+
+* [OpenMetrics规范](https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md)
+
+提到OpenMetrics就不得不提**Prometheus，**OpenMetrics定义了规范，Prometheus则提供了一套完整的实现，报错exporter收集数据，server汇总分析存储数据，其更适合云原生架构。
+
+* 一本不错的教程：[prometheus-book](https://yunlzheng.gitbook.io/prometheus-book/)
+
+![Prometheus架构](../.gitbook/assets/image.png)
