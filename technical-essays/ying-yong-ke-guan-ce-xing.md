@@ -43,4 +43,4 @@ OpenTelemetry其实相当于包含了OpenMetrics，至少是符合OpenMetrics的
 
 * 一本不错的教程：[prometheus-book](https://yunlzheng.gitbook.io/prometheus-book/)
 
-![Prometheus架构](<../.gitbook/assets/image (1).png>)
+![Prometheus架构](<../.gitbook/assets/image (1) (1).png>)
