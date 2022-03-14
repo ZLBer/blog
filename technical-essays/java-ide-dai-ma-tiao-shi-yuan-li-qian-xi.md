@@ -71,9 +71,9 @@ JDWP是调试器和java虚拟机之间用来调试交流的一种协议。可以
 
 ## IDE需要做的事
 
-IDE还会启动了一个java agent，主要的工作是通过agent来完成的，这里不介绍java agent相关的东西。里面会封装IDE如果通过JDI操作debug。比如我们要实现断点，agent收到IDE的断点要求之后，封装请求与目标JVM进行通信。然后监听目标JVM的Event，根据不同的事件进行不同的处理。
+IDE会启动一些后台进程与VM进行交互，里面会封装IDE如果通过JDI操作debug。比如我们要实现断点，IDE收到断点要求之后，封装请求与目标JVM进行通信。然后监听目标JVM的Event，根据不同的事件进行不同的处理。
 
-### 条件断点(Condition Breakpoint)是怎么做的？
+### 条件断点(Condition Breakpoint)是怎么实现的？
 
 java的debug sdk是不支持条件断点的，那IDE的条件断点是怎么做的呢？我也是查了很久的资料，直到找到了eclipse调试器的源码，才大概明白了其中的原理。之前主要的疑惑是：当你设置了条件断点之后，是直接将这个条件修改到字节码中吗？如果是，又是怎么做的？
 
@@ -81,6 +81,132 @@ java的debug sdk是不支持条件断点的，那IDE的条件断点是怎么做�
 
 * [eclipse调试器源码 ](https://git.eclipse.org/c/ajdt/org.eclipse.ajdt.git/)
 
-也有看IDEA社区版的调试器的代码，但看不到怎么实现的，这里也贴出来：
+也有看IDEA社区版的调试器的代码，这里也贴出来：
 
 * [intellij-community 调试器源码](https://github.com/JetBrains/intellij-community/tree/master/java/debugger)
+
+为了讲清楚条件变量，我们改一下上面的例子,改成for循环。
+
+被调试程序，一个简单的for循环：
+
+```
+public class HelloWorld {
+	public static void main(String[] args) {
+           for(int i=0;i<10;i++){
+             System.out.print(i);
+       }		
+	}
+
+}
+```
+
+调试器程序，我们在第4行for循环里打断点，重点代码我都有注释：
+
+```
+import java.util.Map;
+
+import com.sun.jdi.Bootstrap;
+import com.sun.jdi.ClassType;
+import com.sun.jdi.LocalVariable;
+import com.sun.jdi.Location;
+import com.sun.jdi.StackFrame;
+import com.sun.jdi.VMDisconnectedException;
+import com.sun.jdi.Value;
+import com.sun.jdi.VirtualMachine;
+import com.sun.jdi.connect.Connector;
+import com.sun.jdi.connect.LaunchingConnector;
+import com.sun.jdi.event.BreakpointEvent;
+import com.sun.jdi.event.ClassPrepareEvent;
+import com.sun.jdi.event.Event;
+import com.sun.jdi.event.EventSet;
+import com.sun.jdi.request.BreakpointRequest;
+import com.sun.jdi.request.ClassPrepareRequest;
+
+/**
+ * Hello world example for Java Debugging API i.e. JDI. Very basic & simple
+ * example.
+ * 
+ * @author ravik
+ *
+ */
+public class HelloWorldJDIExample {
+
+	public static void main(String[] args) throws Exception {
+
+		Class classToDebug = HelloWorld.class;
+		int lineNumberToPutBreakpoint = 4;
+
+		/*
+		 * Prepare connector, set class to debug & launch VM.
+		 */
+		LaunchingConnector launchingConnector = Bootstrap.virtualMachineManager().defaultConnector();
+		Map<String, Connector.Argument> env = launchingConnector.defaultArguments();
+		env.get("main").setValue(classToDebug.getName());
+		VirtualMachine vm = launchingConnector.launch(env);
+
+		/*
+		 * Request VM to trigger event when HelloWorld class is prepared.
+		 */
+		ClassPrepareRequest classPrepareRequest = vm.eventRequestManager().createClassPrepareRequest();
+		classPrepareRequest.addClassFilter(classToDebug.getName());
+		classPrepareRequest.enable();
+
+		EventSet eventSet = null;
+
+		try {
+			while ((eventSet = vm.eventQueue().remove(100)) != null) {
+
+				for (Event event : eventSet) {
+
+					/*
+					 * If this is ClassPrepareEvent, then set breakpoint
+					 */
+					if (event instanceof ClassPrepareEvent) {
+						ClassPrepareEvent evt = (ClassPrepareEvent) event;
+						ClassType classType = (ClassType) evt.referenceType();
+						//设置行号，发出中断请求
+						Location location = classType.locationsOfLine(lineNumberToPutBreakpoint).get(0);
+						BreakpointRequest bpReq = vm.eventRequestManager().createBreakpointRequest(location);
+						bpReq.enable();
+
+					}
+
+					/*
+					 * If this is BreakpointEvent, then read & print variables.
+					 */
+					//因为我们的行号设置在循环里，VM会返回多次BreakpointEvent，比如i==1时、i==2时等等
+					if (event instanceof BreakpointEvent) {
+						// disable the breakpoint event
+						//将这里的disbable去掉，因为我们的断点事件会返回多次
+						//event.request().disable();
+
+						// Get values of all variables that are visible and print
+						//这里我们会获取到临时变量的name和value
+						//比如我们设置的条件变量是i==5,那么就需要对event事件进行过滤筛选，直到i==5时通知IDE
+						//条件表达式解析是很复杂的，这里我们不讲复杂的表达式。
+						StackFrame stackFrame = ((BreakpointEvent) event).thread().frame(0);
+						Map<LocalVariable, Value> visibleVariables = (Map<LocalVariable, Value>) stackFrame
+								.getValues(stackFrame.visibleVariables());
+						System.out.println("Local Variables =");
+						for (Map.Entry<LocalVariable, Value> entry : visibleVariables.entrySet()) {
+							System.out.println("	" + entry.getKey().name() + " = " + entry.getValue());
+						}
+
+					}
+					vm.resume();
+
+				}
+
+			}
+		} catch (VMDisconnectedException e) {
+			System.out.println("VM is now disconnected.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+}
+```
+
+至此，IDE整个debug的机制我们已经了解的差不错了，看起来简单的debug实现起来也如此复杂，可能这就是程序的魅力，将复杂的功能封装成简单的使用方式提供给用户。我们没有深入到VM内部了解断点具体是怎么实现的，以我的能力估计是不能了，点到为止吧。
