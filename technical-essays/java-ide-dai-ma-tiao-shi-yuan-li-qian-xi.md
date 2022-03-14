@@ -85,7 +85,7 @@ java的debug sdk是不支持条件断点的，那IDE的条件断点是怎么做�
 
 * [intellij-community 调试器源码](https://github.com/JetBrains/intellij-community/tree/master/java/debugger)
 
-为了讲清楚条件变量，我们改一下上面的例子,改成for循环。
+为了讲清楚条件断点，我们改一下上面的例子,改成for循环。
 
 被调试程序，一个简单的for循环：
 
