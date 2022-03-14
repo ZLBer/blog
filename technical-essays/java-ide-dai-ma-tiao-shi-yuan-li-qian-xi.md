@@ -77,7 +77,7 @@ IDE会启动一些后台进程与VM进行交互，里面会封装IDE如果通过
 
 java的debug sdk是不支持条件断点的，那IDE的条件断点是怎么做的呢？我也是查了很久的资料，直到找到了eclipse调试器的源码，才大概明白了其中的原理。之前主要的疑惑是：当你设置了条件断点之后，是直接将这个条件修改到字节码中吗？如果是，又是怎么做的？
 
-在查阅代码的过程中，其实并不是修改了代码，而是在agent里进行判断。大概的实现是这样的：当我们向目标JVM发出断点请求的时候，目标JVM会返回给我们List\<Location> 即中断的位置集合，比如说在for循环中。然后将条件断掉的表达式封装成Expression，将Location里的变量值与Expression 的值进行比较，然后判断哪些Location需要真的暂停，返回给IDE即可。
+在查阅代码的过程中，其实并不是修改了代码，而是在agent里进行判断。大概的实现是这样的：当我们向目标JVM发出断点请求的时候，目标JVM会返回给我们中断的位置集合，比如说在for循环中。然后将条件断掉的表达式封装成Expression，将Location里的变量值与Expression 的值进行比较，然后判断哪些Location需要真的暂停，返回给IDE即可。
 
 * [eclipse调试器源码 ](https://git.eclipse.org/c/ajdt/org.eclipse.ajdt.git/)
 
