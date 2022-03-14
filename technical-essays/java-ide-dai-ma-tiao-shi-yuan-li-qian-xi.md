@@ -36,7 +36,7 @@ Connected to the target VM, address: '127.0.0.1:61353', transport: 'socket'
 
 java平台调试架构包括：java调试接口(JDI)、java调试协议(JDWP)、JDWP代理等。看下面的架构图，调试器(Debugger)，通过JDWP协议与目标JVM进行交互。
 
-![JPDA](<../.gitbook/assets/image (1).png>)
+![JPDA](<../.gitbook/assets/image (1) (1).png>)
 
 ### Java Debug Wire Protocol
 
@@ -212,5 +212,9 @@ public class HelloWorldJDIExample {
 此外IDE还会启动一个java-agent，比如IDEA中的agent叫 `Debugger-agent.jar` ,看了下大概是去捕获动态修改的字段值，然后再塞到代码中去，因为在调试过程中，允许我们手动去set value去改变程序的运行结果。
 
 ![](<../.gitbook/assets/image (2).png>)
+
+Debugger-agent premain方法里主要逻辑，用来处理capture和集合断点，具体代码没看懂哈哈。但可以看出debug的逻辑不是在agent里的，agent只是用来修改字节码，方便一些操作。
+
+![](<../.gitbook/assets/image (3).png>)
 
 至此，IDE整个debug的机制我们已经了解的差不多了，看起来简单的debug实现起来也如此复杂，可能这就是程序的魅力，将复杂的功能封装成简单的使用方式提供给用户。我们没有深入到VM内部了解断点具体是怎么实现的，以我的能力估计是不能了，点到为止吧。
