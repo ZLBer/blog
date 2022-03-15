@@ -10,5 +10,6 @@
 * [Technical Essays](technical-essays/README.md)
   * [应用可观测性](technical-essays/ying-yong-ke-guan-ce-xing.md)
   * [JAVA IDE代码调试原理浅析](technical-essays/java-ide-dai-ma-tiao-shi-yuan-li-qian-xi.md)
+  * [Skywalking解析](technical-essays/skywalking-jie-xi.md)
 * [Other Essays](other-essays/README.md)
   * [信息论学习](other-essays/xin-xi-lun-xue-xi.md)
