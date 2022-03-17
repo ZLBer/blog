@@ -227,7 +227,9 @@ find方法没出现在此处，但可以简单介绍下。
     }
 ```
 
-## 4.初始化ByteBuddy，并忽略掉一些类。
+### 4.初始化ByteBuddy
+
+利用ByteBuddy的AgentBuilder进行初始化构造，主要是忽略到一些类。
 
 ```
  final ByteBuddy byteBuddy = new ByteBuddy().with(TypeValidation.of(Config.Agent.IS_OPEN_DEBUGGING_CLASS));
@@ -244,28 +246,83 @@ find方法没出现在此处，但可以简单介绍下。
                         .or(ElementMatchers.isSynthetic()));
 ```
 
-5\.
+### 5.获取边界类
 
 ```
  JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
 
 ```
 
-5\.
+### 6.处理jdk注入
+
+BootstrapInstrumentBoost主要用来处理对jdk类的增强。
 
 ```
 agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
 
 ```
 
-6.针对jdk9的模块化做处理
+分析inject方法的具体逻辑：
+
+```
+   public static AgentBuilder inject(PluginFinder pluginFinder, Instrumentation instrumentation,
+        AgentBuilder agentBuilder, JDK9ModuleExporter.EdgeClasses edgeClasses) throws PluginException {
+        Map<String, byte[]> classesTypeMap = new HashMap<>();
+
+        /*
+        针对目标类是jdk核心类库的插件，这里根据的拦截点的不同（实例方法、静态方法、构造方法）
+        使用不同的模板（XXTemplate）来构造新的拦截器的核心处理逻辑，并且将插件本身定义的拦截器的全类名
+        赋值给模板的 XX  子段
+        最终，这些新的拦截器的核心处理逻辑会放入Bootstrap ClassLoader中
+         */
+        if (!prepareJREInstrumentation(pluginFinder, classesTypeMap)) {
+            return agentBuilder;
+        }
+
+        if (!prepareJREInstrumentationV2(pluginFinder, classesTypeMap)) {
+            return agentBuilder;
+        }
+        //加载高优先级的类到classesTypeMap中
+        for (String highPriorityClass : HIGH_PRIORITY_CLASSES) {
+            loadHighPriorityClass(classesTypeMap, highPriorityClass);
+        }
+        //加载ByteBuddy的核心类到classesTypeMap中
+        for (String highPriorityClass : ByteBuddyCoreClasses.CLASSES) {
+            loadHighPriorityClass(classesTypeMap, highPriorityClass);
+        }
+
+        /**
+         * Prepare to open edge of necessary classes.
+         */
+        for (String generatedClass : classesTypeMap.keySet()) {
+            edgeClasses.add(generatedClass);
+        }
+
+        /**
+         * Inject the classes into bootstrap class loader by using Unsafe Strategy.
+         * ByteBuddy adapts the sun.misc.Unsafe and jdk.internal.misc.Unsafe automatically.
+         */
+        //把这些类注入到bootstrapClassLoader中
+        ClassInjector.UsingUnsafe.Factory factory = ClassInjector.UsingUnsafe.Factory.resolve(instrumentation);
+        factory.make(null, null).injectRaw(classesTypeMap);
+        agentBuilder = agentBuilder.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(factory));
+
+        return agentBuilder;
+    }
+```
+
+
+
+### 7.针对jdk9的模块化做处理
+
+打开读边界
 
 ```
 agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
 
 ```
 
-7.判断是否开启缓存，注入缓存机制
+### 8.判断是否开启缓存，注入缓存机制
 
 ```
        if (Config.Agent.IS_CACHE_ENHANCED_CLASS) {
@@ -278,7 +335,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
         }
 ```
 
-8\. 实现字节码增强
+### 9. 实现字节码增强
 
 ```
         agentBuilder.type(pluginFinder.buildMatch()) //要修改的类
@@ -289,17 +346,17 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
                     .installOn(instrumentation);
 ```
 
-9.启动skywalking的服务
+### 10.启动skywalking的服务
 
 ```
-//ServiceManager.INSTANCE.boot();
+ServiceManager.INSTANCE.boot();
 ```
 
-### skywalking 链路采集
+## skywalking 链路采集
 
-### skywalking 指标采集
+## skywalking 指标采集
 
-### skywalking 日志采集
+## skywalking 日志采集
 
-### skywalking-oap接收
+## skywalking-oap接收
 
