@@ -4,7 +4,7 @@ description: Analysis of  Skywalking
 
 # Skywalking解析
 
-## skywalking组件
+## skywalking介绍
 
 Skywalking是一款比较火的APM(Application Performance Management)程序，负责应用程序的可观测性。其主要流程如下：首先是各种agent负责采集数据(Trace、Metrics、Log)，agent可以是自动注入和手动采集方式，通过grpc或kafka或http发送到后端OAP系统，OAP负责分析和展示。
 
@@ -98,7 +98,7 @@ SnifferConfigInitializer.initializeCoreConfig(agentArgs);
 LOGGER = LogManager.getLogger(SkyWalkingAgent.class);
 ```
 
-#### 3.加载插件并封装成PluginFinder
+### 3.加载插件并封装成PluginFinder
 
 ```
 PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
@@ -110,7 +110,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 有两个重要的步骤`loadPlugins()` ,`new PluginFinder()`,我们依次来分析。
 
-3.1 加载插件
+#### 3.1 加载插件
 
 ```
     public List<AbstractClassEnhancePluginDefine> loadPlugins() throws AgentPackageNotFoundException {
@@ -158,7 +158,9 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
     }
 ```
 
-3.2 初始化PluginFinder，从名字可以看出此类的作用查找，是根据TypeDescription来查找
+#### 3.2 初始化PluginFinder
+
+从名字可以看出此类的作用查找，是根据TypeDescription来查找
 
 List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应的增强插件。
 
@@ -200,7 +202,9 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
 
 ![ClassMatch继承体系](<../.gitbook/assets/image (3).png>)
 
-3.3 PluginFinder的查找
+#### 3.3 PluginFinder的查找
+
+find方法没出现在此处，但可以简单介绍下。
 
 ```
     public List<AbstractClassEnhancePluginDefine> find(TypeDescription typeDescription) {
@@ -223,7 +227,7 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
     }
 ```
 
-4.初始化ByteBuddy，并忽略掉一些类。
+## 4.初始化ByteBuddy，并忽略掉一些类。
 
 ```
  final ByteBuddy byteBuddy = new ByteBuddy().with(TypeValidation.of(Config.Agent.IS_OPEN_DEBUGGING_CLASS));
