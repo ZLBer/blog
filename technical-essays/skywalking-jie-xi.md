@@ -538,7 +538,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
 
 ### 9. 实现字节码增强
 
-除了jdk的增强，其余组件的增强都在这里处理 。transform是具体的转化逻辑，with是添加的监听器
+除了jdk的增强，其余组件的增强都在这里处理 。transform是具体的转化逻辑，with是添加监听器，installOn进行字节码增强替换。
 
 ```
         agentBuilder.type(pluginFinder.buildMatch()) //要修改的类
