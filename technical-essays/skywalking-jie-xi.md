@@ -16,7 +16,9 @@ Skywalking是一款比较火的APM(Application Performance Management)程序，�
 
 ## skywalking-agent启动流程
 
-我们介绍java端是如何进行自动采集的，依赖于java-agent机制，在我们的程序运行之前，先运行java-agent的代码，将目标字节码替换成注入采集逻辑的代码，比如在方法之前开启Trace、在方法之后结束Trace。
+我们介绍java端是如何进行自动采集的，依赖于java-agent机制，在我们的程序运行之前，先运行java-agent的代码，将目标字节码替换成注入采集逻辑的代码，比如在方法之前开启Trace、在方法之后结束Trace。skywalking用ByteBuddy进行字节码增强的，可以先看下ByteBuddy怎么操作java-agent：
+
+* [https://notes.diguage.com/byte-buddy-tutorial/#creating-java-agents](https://notes.diguage.com/byte-buddy-tutorial/#creating-java-agents)
 
 `org.apache.skywalking.apm.agent.SkyWalkingAgent`类是整个agent机制的入口，需要按照java-agent机制的要求实现`premain`方法，我们一次介绍agent加载的具体步骤，也就是premain方法里的逻辑。
 
