@@ -8,7 +8,7 @@ description: Analysis of  Skywalking
 
 Skywalking是一款比较火的APM(Application Performance Management)程序，负责应用程序的可观测性。其主要流程如下：首先是各种agent负责采集数据(Trace、Metrics、Log)，agent可以是自动注入和手动采集方式，通过grpc或kafka或http发送到后端OAP系统，OAP负责分析和展示。
 
-![skywalking官方架构图](<../.gitbook/assets/image (3) (1) (1).png>)
+![skywalking官方架构图](<../../.gitbook/assets/image (3) (1) (1).png>)
 
 
 
@@ -108,7 +108,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 首先要知道什么是Plugin，看一下下图就大概明白了，此处插件的意思就是针对每个组件的各种采集逻辑。
 
-![plugins](<../.gitbook/assets/image (2).png>)
+![plugins](<../../.gitbook/assets/image (2).png>)
 
 有两个重要的步骤`loadPlugins()` ,`new PluginFinder()`,我们依次来分析。
 
@@ -202,7 +202,7 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
 
 类匹配机制除了NameMatch(名称匹配，判断字符串相等)之外，还有RegexMatch(正则匹配)、PrefixMatch(前缀匹配)、AnnotationMatch(注解匹配，包括class和method的注解)，匹配机制还是挺丰富的。下图是ClassMatch的继承体系。
 
-![ClassMatch继承体系](<../.gitbook/assets/image (3) (1).png>)
+![ClassMatch继承体系](<../../.gitbook/assets/image (3) (1).png>)
 
 #### 3.3 PluginFinder类的find方法
 
@@ -317,7 +317,7 @@ inject来进行jkd增强的具体构造
 
 在classesTypeMap中添加的类都是要用BoostrapClassLoader去加载的，其中有一项是HIGH\_PRIORITY\_CLASSES 高优先类，我们看一下其具体的内容，这为后面的类加载打通通道。
 
-![HIGH\_PRIORITY\_CLASSES](<../.gitbook/assets/image (3).png>)
+![HIGH\_PRIORITY\_CLASSES](<../../.gitbook/assets/image (3).png>)
 
 #### 6.2 prepareJREInstrumentation方法
 
@@ -976,7 +976,7 @@ ServiceManager.INSTANCE.boot();
 
 可以看下BootService spi定义文件中所有的实现：JVMService和JVMMetricsSender前者负责采集jvm的数据，后者负责向aop发送数据。GRPCChannelManager负责管理grpc的连接。TraceSegmentServiceClient负责将Trace数据发送到aop。MeterService和MeterSender分别负责Metrics的注册和发送。SamplingService负责采样相关的。LogReportServiceClient负责日志的上报。、KafkaXXX是上报逻辑的kafka实现，因为skywalking的上报分为直接上报和消息队列间接上报。
 
-![service spi](<../.gitbook/assets/image (4).png>)
+![service spi](<../../.gitbook/assets/image (4).png>)
 
 #### 10.3 prepare方法
 
