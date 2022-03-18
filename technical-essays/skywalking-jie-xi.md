@@ -650,7 +650,7 @@ AbstractClassEnhancePluginDefine.define&#x20;
     } 
 ```
 
-9.3 enhance方法
+#### 9.3 enhance方法
 
 enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里我们只看下enhanceInstance。
 
@@ -901,9 +901,105 @@ public class InstMethodsInter {
 
 ### 10.启动skywalking的服务
 
+加载skywalking定义的服务 BootService
+
 ```
 ServiceManager.INSTANCE.boot();
 ```
+
+#### 10.1 boot方法
+
+```
+        public void boot() {
+        //加载所有服务
+        bootedServices = loadAllServices();
+
+        //调用所有服务的prepare boot  onComplete方法
+        prepare();
+        startup();
+        onComplete();
+    }
+```
+
+#### 10.2 loadAllServices方法
+
+```
+    private Map<Class, BootService> loadAllServices() {
+        Map<Class, BootService> bootedServices = new LinkedHashMap<>();
+        List<BootService> allServices = new LinkedList<>();
+        //spi机制加载服务
+        load(allServices);
+        for (final BootService bootService : allServices) {
+            Class<? extends BootService> bootServiceClass = bootService.getClass();
+            boolean isDefaultImplementor = bootServiceClass.isAnnotationPresent(DefaultImplementor.class);
+            //如果是默认实现 就放在bootedServices里
+            if (isDefaultImplementor) {
+                if (!bootedServices.containsKey(bootServiceClass)) {
+                    bootedServices.put(bootServiceClass, bootService);
+                } else {
+                    //ignore the default service
+                }
+              //如果是覆盖实现
+            } else {
+                OverrideImplementor overrideImplementor = bootServiceClass.getAnnotation(OverrideImplementor.class);
+                if (overrideImplementor == null) {
+                    if (!bootedServices.containsKey(bootServiceClass)) {
+                        bootedServices.put(bootServiceClass, bootService);
+                    } else {
+                        throw new ServiceConflictException("Duplicate service define for :" + bootServiceClass);
+                    }
+                } else {
+                    Class<? extends BootService> targetService = overrideImplementor.value();
+                    //已经有这个服务了
+                    if (bootedServices.containsKey(targetService)) {
+                        boolean presentDefault = bootedServices.get(targetService)
+                                                               .getClass()
+                                                               .isAnnotationPresent(DefaultImplementor.class);
+                       //如果这个服务存在默认实现就覆盖掉
+                        if (presentDefault) {
+                            bootedServices.put(targetService, bootService);
+                        } else {
+                            throw new ServiceConflictException(
+                                "Service " + bootServiceClass + " overrides conflict, " + "exist more than one service want to override :" + targetService);
+                        }
+                    } else {
+                        //没有这个服务直接put进去
+                        bootedServices.put(targetService, bootService);
+                    }
+                }
+            }
+
+        }
+        return bootedServices;
+    }
+```
+
+可以看下BootService spi定义文件中所有的实现：JVMService和JVMMetricsSender前者负责采集jvm的数据，后者负责向aop发送数据。GRPCChannelManager负责管理grpc的连接。TraceSegmentServiceClient负责将Trace数据发送到aop。MeterService和MeterSender分别负责Metrics的注册和发送。SamplingService负责采样相关的。LogReportServiceClient负责日志的上报。、KafkaXXX是上报逻辑的kafka实现，因为skywalking的上报分为直接上报和消息队列间接上报。
+
+![service spi](<../.gitbook/assets/image (4).png>)
+
+#### 10.3 prepare方法
+
+```
+    private void prepare() {
+        //现根据服务的优先级进行排序
+        bootedServices.values().stream().sorted(Comparator.comparingInt(BootService::priority)).forEach(service -> {
+            try {
+                service.prepare();
+            } catch (Throwable e) {
+                LOGGER.error(e, "ServiceManager try to pre-start [{}] fail.", service.getClass().getName());
+            }
+        });
+    }
+```
+
+10.4 JVMService和JVMMetricsSender
+
+
+
+
+
+
 
 ## skywalking 链路采集
 
