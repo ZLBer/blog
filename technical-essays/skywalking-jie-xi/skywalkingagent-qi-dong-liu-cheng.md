@@ -10,13 +10,15 @@ description: Skywalking agent startup process
 
 `org.apache.skywalking.apm.agent.SkyWalkingAgent`类是整个agent机制的入口，需要按照java-agent机制的要求实现`premain`方法，我们一次介绍agent加载的具体步骤，也就是premain方法里的逻辑。
 
-### 1.初始化配置
+## 1.初始化配置
 
 ```
 SnifferConfigInitializer.initializeCoreConfig(agentArgs);
 ```
 
 看一下具体怎么实现`initializeCoreConfig`，进入`org.apache.skywalking.apm.agent.core.conf.SnifferConfigInitializer`类，我们一步步看下`initializeCoreConfig`都做了什么，在关键方法上都做了注释，详细的实现就不跟进去了，比较基础。
+
+### 1.1 initializeCoreConfig方法
 
 ```
  public static void initializeCoreConfig(String agentOptions) {
@@ -80,7 +82,7 @@ SnifferConfigInitializer.initializeCoreConfig(agentArgs);
     }
 ```
 
-### 2.重新获取LOGGER
+## 2.重新获取LOGGER
 
 因为用户可能会在配置里重新配置logger
 
@@ -88,7 +90,7 @@ SnifferConfigInitializer.initializeCoreConfig(agentArgs);
 LOGGER = LogManager.getLogger(SkyWalkingAgent.class);
 ```
 
-### 3.加载插件并封装成PluginFinder
+## 3.加载插件并封装成PluginFinder
 
 ```
 PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
@@ -100,7 +102,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 有两个重要的步骤`loadPlugins()` ,`new PluginFinder()`,我们依次来分析。
 
-#### 3.1 加载插件`loadPlugins方法`
+### 3.1 加载插件`loadPlugins方法`
 
 ```
     public List<AbstractClassEnhancePluginDefine> loadPlugins() throws AgentPackageNotFoundException {
