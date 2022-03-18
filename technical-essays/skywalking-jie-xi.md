@@ -980,6 +980,8 @@ ServiceManager.INSTANCE.boot();
 
 #### 10.3 prepare方法
 
+因为都不难，我们只看下prepare方法。
+
 ```
     private void prepare() {
         //现根据服务的优先级进行排序
@@ -993,11 +995,9 @@ ServiceManager.INSTANCE.boot();
     }
 ```
 
-10.4 JVMService和JVMMetricsSender
 
 
-
-
+至此，skywalking-agent端的启动流程我们就分析完毕了，我觉得自己都看懂了，但是写出了可能就不好理解了，信息的传播毕竟是熵减的嘛，哈哈哈。
 
 
 
