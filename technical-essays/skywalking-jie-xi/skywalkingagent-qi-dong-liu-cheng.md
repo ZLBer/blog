@@ -150,7 +150,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
     }
 ```
 
-#### 3.2 PluginFinder的构造器
+### 3.2 PluginFinder的构造器
 
 从名字可以看出此类的作用查找，是根据TypeDescription来查找
 
@@ -194,7 +194,7 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
 
 ![ClassMatch继承体系](<../../.gitbook/assets/image (3) (1).png>)
 
-#### 3.3 PluginFinder类的find方法
+### 3.3 PluginFinder类的find方法
 
 find方法没出现在此处，但可以简单介绍下。
 
@@ -219,7 +219,7 @@ find方法没出现在此处，但可以简单介绍下。
     }
 ```
 
-### 4.初始化ByteBuddy
+## 4.初始化ByteBuddy
 
 利用ByteBuddy的AgentBuilder进行初始化构造，主要是忽略到一些类。
 
@@ -238,14 +238,14 @@ find方法没出现在此处，但可以简单介绍下。
                         .or(ElementMatchers.isSynthetic()));
 ```
 
-### 5.获取边界类
+## 5.获取边界类
 
 ```
  JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
 
 ```
 
-### 6.处理jdk注入
+## 6.处理jdk注入
 
 BootstrapInstrumentBoost主要用来处理对jdk类的增强。
 
@@ -254,7 +254,7 @@ agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, ag
 
 ```
 
-#### 6.1 inject方法
+### 6.1 inject方法
 
 inject来进行jkd增强的具体构造
 
@@ -309,7 +309,7 @@ inject来进行jkd增强的具体构造
 
 ![HIGH\_PRIORITY\_CLASSES](<../../.gitbook/assets/image (3).png>)
 
-#### 6.2 prepareJREInstrumentation方法
+### 6.2 prepareJREInstrumentation方法
 
 根据不同的模板为bytebuddy生成jdk的注入代码
 
@@ -360,7 +360,7 @@ inject来进行jkd增强的具体构造
     }
 ```
 
-#### 6.3 generateDelegator方法
+### 6.3 generateDelegator方法
 
 生成委派器
 
@@ -391,7 +391,7 @@ inject来进行jkd增强的具体构造
     }
 ```
 
-#### 6.4 InstanceMethodInterTemplate模板类
+### 6.4 InstanceMethodInterTemplate模板类
 
 我们看一下模板具体是怎么样的，这是根据byteBuddy做的模板，prepare方法理解起来比较困难，我已经做了详细的注释。除此之外，还有ConstructorInterTemplate、StaticMethodInterTemplate等等。
 
@@ -504,7 +504,7 @@ public class InstanceMethodInterTemplate {
 
 至此，针对jdk增强的构造器已经生成。
 
-### 7.针对jdk9的模块化做处理
+## 7.针对jdk9的模块化做处理
 
 打开模块类的读边界
 
@@ -513,7 +513,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
 
 ```
 
-### 8.判断是否开启缓存，注入缓存机制
+## 8.判断是否开启缓存，注入缓存机制
 
 ```
        if (Config.Agent.IS_CACHE_ENHANCED_CLASS) {
@@ -526,7 +526,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
         }
 ```
 
-### 9. 实现字节码增强
+## 9. 实现字节码增强
 
 除了jdk的增强，其余组件的增强都在这里处理 。transform是具体的转化逻辑，with是添加监听器，installOn进行字节码增强替换。
 
@@ -539,7 +539,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
                     .installOn(instrumentation);
 ```
 
-#### 9.1 Transformer类
+### 9.1 Transformer类
 
 Transformer是byteBuddy定义的接口，用来封装类的转换逻辑
 
@@ -587,7 +587,7 @@ Transformer是byteBuddy定义的接口，用来封装类的转换逻辑
     }
 ```
 
-#### 9.2 define方法
+### 9.2 define方法
 
 AbstractClassEnhancePluginDefine.define&#x20;
 
@@ -640,7 +640,7 @@ AbstractClassEnhancePluginDefine.define&#x20;
     } 
 ```
 
-#### 9.3 enhance方法
+### 9.3 enhance方法
 
 enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里我们只看下enhanceInstance。
 
@@ -657,7 +657,7 @@ enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里�
     }
 ```
 
-#### 9.4 enhanceInstance 方法
+### 9.4 enhanceInstance 方法
 
 实例增强逻辑，其实现在ClassEnhancePluginDefine。
 
@@ -773,7 +773,7 @@ enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里�
     }
 ```
 
-#### 9.5 InstMethodsInter方法
+### 9.5 InstMethodsInter方法
 
 我们只看下实例方法的增强类，和jdk增强模板是一样的，只是没有了prepare方法更简单了。在构造方法里回去加载intercepter。
 
@@ -849,7 +849,7 @@ public class InstMethodsInter {
 }
 ```
 
-#### 9.6 interceptor加载
+### 9.6 interceptor加载
 
 把当前类的类加载器当成parent，新生成一个AgentClassLoader 去加载拦截器。
 
@@ -889,7 +889,7 @@ public class InstMethodsInter {
     }
 ```
 
-### 10.启动skywalking的服务
+## 10.启动skywalking的服务
 
 加载skywalking定义的服务 BootService
 
@@ -897,7 +897,7 @@ public class InstMethodsInter {
 ServiceManager.INSTANCE.boot();
 ```
 
-#### 10.1 boot方法
+### 10.1 boot方法
 
 ```
         public void boot() {
@@ -911,7 +911,7 @@ ServiceManager.INSTANCE.boot();
     }
 ```
 
-#### 10.2 loadAllServices方法
+### 10.2 loadAllServices方法
 
 ```
     private Map<Class, BootService> loadAllServices() {
@@ -968,7 +968,7 @@ ServiceManager.INSTANCE.boot();
 
 ![service spi](<../../.gitbook/assets/image (4).png>)
 
-#### 10.3 prepare方法
+### 10.3 prepare方法
 
 因为都不难，我们只看下prepare方法。
 
