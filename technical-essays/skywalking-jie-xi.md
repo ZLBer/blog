@@ -8,7 +8,7 @@ description: Analysis of  Skywalking
 
 Skywalking是一款比较火的APM(Application Performance Management)程序，负责应用程序的可观测性。其主要流程如下：首先是各种agent负责采集数据(Trace、Metrics、Log)，agent可以是自动注入和手动采集方式，通过grpc或kafka或http发送到后端OAP系统，OAP负责分析和展示。
 
-![skywalking官方架构图](<../.gitbook/assets/image (3) (1).png>)
+![skywalking官方架构图](<../.gitbook/assets/image (3) (1) (1).png>)
 
 
 
@@ -18,7 +18,7 @@ Skywalking是一款比较火的APM(Application Performance Management)程序，�
 
 我们介绍java端是如何进行自动采集的，依赖于java-agent机制，在我们的程序运行之前，先运行java-agent的代码，将目标字节码替换成注入采集逻辑的代码，比如在方法之前开启Trace、在方法之后结束Trace。
 
-`org.apache.skywalking.apm.agent.SkyWalkingAgent`类是整个agent机制的入口，需要按照java-agent机制的要求实现`premain`方法，我们只需要关注测方法即可。
+`org.apache.skywalking.apm.agent.SkyWalkingAgent`类是整个agent机制的入口，需要按照java-agent机制的要求实现`premain`方法，我们一次介绍agent加载的具体步骤，也就是premain方法里的逻辑。
 
 ### 1.初始化配置
 
@@ -92,7 +92,7 @@ SnifferConfigInitializer.initializeCoreConfig(agentArgs);
 
 ### 2.重新获取LOGGER
 
-因为用户可能会配置logger
+因为用户可能会在配置里重新配置logger
 
 ```
 LOGGER = LogManager.getLogger(SkyWalkingAgent.class);
@@ -110,7 +110,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 有两个重要的步骤`loadPlugins()` ,`new PluginFinder()`,我们依次来分析。
 
-#### 3.1 加载插件
+#### 3.1 加载插件`loadPlugins方法`
 
 ```
     public List<AbstractClassEnhancePluginDefine> loadPlugins() throws AgentPackageNotFoundException {
@@ -158,7 +158,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
     }
 ```
 
-#### 3.2 初始化PluginFinder
+#### 3.2 PluginFinder的构造器
 
 从名字可以看出此类的作用查找，是根据TypeDescription来查找
 
@@ -200,9 +200,9 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
 
 类匹配机制除了NameMatch(名称匹配，判断字符串相等)之外，还有RegexMatch(正则匹配)、PrefixMatch(前缀匹配)、AnnotationMatch(注解匹配，包括class和method的注解)，匹配机制还是挺丰富的。下图是ClassMatch的继承体系。
 
-![ClassMatch继承体系](<../.gitbook/assets/image (3).png>)
+![ClassMatch继承体系](<../.gitbook/assets/image (3) (1).png>)
 
-#### 3.3 PluginFinder的查找
+#### 3.3 PluginFinder类的find方法
 
 find方法没出现在此处，但可以简单介绍下。
 
@@ -262,7 +262,9 @@ agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, ag
 
 ```
 
-分析inject方法的具体逻辑：
+#### 6.1 inject方法
+
+inject来进行jkd增强的具体构造
 
 ```
    public static AgentBuilder inject(PluginFinder pluginFinder, Instrumentation instrumentation,
@@ -311,11 +313,208 @@ agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, ag
     }
 ```
 
+在classesTypeMap中添加的类都是要用BoostrapClassLoader去加载的，其中有一项是HIGH\_PRIORITY\_CLASSES 高优先类，我们看一下其具体的内容，这为后面的类加载打通通道。
 
+![HIGH\_PRIORITY\_CLASSES](<../.gitbook/assets/image (3).png>)
+
+#### 6.2 prepareJREInstrumentation方法
+
+根据不同的模板为bytebuddy生成jdk的注入代码
+
+```
+    private static boolean prepareJREInstrumentation(PluginFinder pluginFinder,
+        Map<String, byte[]> classesTypeMap) throws PluginException {
+        TypePool typePool = TypePool.Default.of(BootstrapInstrumentBoost.class.getClassLoader());
+        List<AbstractClassEnhancePluginDefine> bootstrapClassMatchDefines = pluginFinder.getBootstrapClassMatchDefine();
+        //开始遍历bootstrapClassMatchDefines
+        //根据不同的拦截点选择不同的java模板来生成增强类
+        for (AbstractClassEnhancePluginDefine define : bootstrapClassMatchDefines) {
+            //处理实例方法拦截点
+            if (Objects.nonNull(define.getInstanceMethodsInterceptPoints())) {
+                for (InstanceMethodsInterceptPoint point : define.getInstanceMethodsInterceptPoints()) {
+                    if (point.isOverrideArgs()) {
+                        generateDelegator(
+                            classesTypeMap, typePool, INSTANCE_METHOD_WITH_OVERRIDE_ARGS_DELEGATE_TEMPLATE, point
+                                .getMethodsInterceptor());
+                    } else {
+                        generateDelegator(
+                            classesTypeMap, typePool, INSTANCE_METHOD_DELEGATE_TEMPLATE, point.getMethodsInterceptor());
+                    }
+                }
+            }
+            //处理构造器方法拦截点
+            if (Objects.nonNull(define.getConstructorsInterceptPoints())) {
+                for (ConstructorInterceptPoint point : define.getConstructorsInterceptPoints()) {
+                    generateDelegator(
+                        classesTypeMap, typePool, CONSTRUCTOR_DELEGATE_TEMPLATE, point.getConstructorInterceptor());
+                }
+            }
+            //处理静态方法拦截点
+            if (Objects.nonNull(define.getStaticMethodsInterceptPoints())) {
+                for (StaticMethodsInterceptPoint point : define.getStaticMethodsInterceptPoints()) {
+                    if (point.isOverrideArgs()) {
+                        generateDelegator(
+                            classesTypeMap, typePool, STATIC_METHOD_WITH_OVERRIDE_ARGS_DELEGATE_TEMPLATE, point
+                                .getMethodsInterceptor());
+                    } else {
+                        generateDelegator(
+                            classesTypeMap, typePool, STATIC_METHOD_DELEGATE_TEMPLATE, point.getMethodsInterceptor());
+                    }
+                }
+            }
+        }
+        //是不是进行了jdk类增强
+        return bootstrapClassMatchDefines.size() > 0;
+    }
+```
+
+#### 6.3 generateDelegator方法
+
+生成委派器
+
+```
+    private static void generateDelegator(Map<String, byte[]> classesTypeMap, TypePool typePool,
+        String templateClassName, String methodsInterceptor) {
+        //internalInterceptorName = methodName_internal
+        String internalInterceptorName = internalDelegate(methodsInterceptor);
+        try {
+            TypeDescription templateTypeDescription = typePool.describe(templateClassName).resolve();
+
+            //根据模板构造class类， 将TARGET_INTERCEPTOR替换成真正的methodsInterceptor
+            //这里的classloader是BootstrapInstrumentBoost的类加载器
+            DynamicType.Unloaded interceptorType = new ByteBuddy().redefine(templateTypeDescription, ClassFileLocator.ForClassLoader
+                .of(BootstrapInstrumentBoost.class.getClassLoader()))
+                                                                  .name(internalInterceptorName)
+                                                                  .field(named("TARGET_INTERCEPTOR"))
+                                                                  .value(methodsInterceptor)
+                                                                  .make();
+
+            //将根据模板构造的类添加到传入的classesTypeMap中
+            classesTypeMap.put(internalInterceptorName, interceptorType.getBytes());
+
+            InstrumentDebuggingClass.INSTANCE.log(interceptorType);
+        } catch (Exception e) {
+            throw new PluginException("Generate Dynamic plugin failure", e);
+        }
+    }
+```
+
+#### 6.4 InstanceMethodInterTemplate模板类
+
+我们看一下模板具体是怎么样的，这是根据byteBuddy做的模板，prepare方法理解起来比较困难，我已经做了详细的注释。除此之外，还有ConstructorInterTemplate、StaticMethodInterTemplate等等。
+
+```
+public class InstanceMethodInterTemplate {
+    /**
+     * This field is never set in the template, but has value in the runtime.
+     */
+    private static String TARGET_INTERCEPTOR;
+
+    private static InstanceMethodsAroundInterceptor INTERCEPTOR;
+    private static IBootstrapLog LOGGER;
+
+    /**
+     * Intercept the target instance method.
+     *
+     * @param obj          target class instance.
+     * @param allArguments all method arguments
+     * @param method       method description.
+     * @param zuper        the origin call ref.
+     * @return the return value of target instance method.
+     * @throws Exception only throw exception because of zuper.call() or unexpected exception in sky-walking ( This is a
+     *                   bug, if anything triggers this condition ).
+     */
+    @RuntimeType
+    public static Object intercept(@This Object obj, @AllArguments Object[] allArguments, @SuperCall Callable<?> zuper,
+        @Origin Method method) throws Throwable {
+        EnhancedInstance targetObject = (EnhancedInstance) obj;
+
+        //填充INTERCEPTOR和LOGGER
+        prepare();
+
+        MethodInterceptResult result = new MethodInterceptResult();
+        try {
+            if (INTERCEPTOR != null) {
+                INTERCEPTOR.beforeMethod(targetObject, method, allArguments, method.getParameterTypes(), result);
+            }
+        } catch (Throwable t) {
+            if (LOGGER != null) {
+                LOGGER.error(t, "class[{}] before method[{}] intercept failure", obj.getClass(), method.getName());
+            }
+        }
+
+        Object ret = null;
+        try {
+            if (!result.isContinue()) {
+                ret = result._ret();
+            } else {
+                ret = zuper.call();
+            }
+        } catch (Throwable t) {
+            try {
+                if (INTERCEPTOR != null) {
+                    INTERCEPTOR.handleMethodException(targetObject, method, allArguments, method.getParameterTypes(), t);
+                }
+            } catch (Throwable t2) {
+                if (LOGGER != null) {
+                    LOGGER.error(t2, "class[{}] handle method[{}] exception failure", obj.getClass(), method.getName());
+                }
+            }
+            throw t;
+        } finally {
+            try {
+                if (INTERCEPTOR != null) {
+                    ret = INTERCEPTOR.afterMethod(targetObject, method, allArguments, method.getParameterTypes(), ret);
+                }
+            } catch (Throwable t) {
+                if (LOGGER != null) {
+                    LOGGER.error(t, "class[{}] after method[{}] intercept failure", obj.getClass(), method.getName());
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * Prepare the context. Link to the agent core in AppClassLoader.
+     */
+    //此处是bootstrapclassloader加载的 ,根据双亲委派模型，是获取不到AgentClassLoader加载的类的，
+    // 而拦截器都是AgentClassLoader加载的，所以要打通BootStrapClassLoader和AgentClasssLoader
+    private static void prepare() {
+        if (INTERCEPTOR == null) {
+            //获取Agentclassloader 通过反射获取default_agentclassloader字段
+            ClassLoader loader = BootstrapInterRuntimeAssist.getAgentClassLoader();
+
+            if (loader != null) {
+                //获取logger loggerManager是appclassloader加载的, 此处是BootStrapClassLoader执行，所以直接获取不到loggerManager
+                //此处用的方法是用Agentclassloader去加载一个桥接器BootstrapPluginLogBridge，桥接器集成IBootstrapLog(此类是BootstrapClassloader加载的)
+                // 然后桥接器调用getLogger去调用loggerManager获取到logger, 并封装成IBootstrapLog返回
+                //此处比较复杂，需要对类加载器的流程比较熟悉，主要做法就是：用BootStrapClassLoader的类IBootstrapLog 封装logger的方法，
+                // 让Agentclassloader的类BootstrapPluginLogBridge去实现此接口，然后去实际操作logger
+                // 父加载器持有接口，子加载器负责实现  ---重点
+                //为什么不直接反射获取logger？因为BootStrapClassLoader不认识logger的类
+                IBootstrapLog logger = BootstrapInterRuntimeAssist.getLogger(loader, TARGET_INTERCEPTOR);
+                if (logger != null) {
+                    LOGGER = logger;
+                    //用defaultAgentClassLoader去加载interceptor，也是父加载器持有接口，子加载器负责实现
+                    //因为是BootStrapClassloader加载的InstanceMethodsAroundInterceptor接口
+                    INTERCEPTOR = BootstrapInterRuntimeAssist.createInterceptor(loader, TARGET_INTERCEPTOR, LOGGER);
+                }
+
+            } else {
+                LOGGER.error("Runtime ClassLoader not found when create {}." + TARGET_INTERCEPTOR);
+            }
+        }
+    }
+}
+```
+
+至此，针对jdk增强的构造器已经生成。
 
 ### 7.针对jdk9的模块化做处理
 
-打开读边界
+打开模块类的读边界
 
 ```
 agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
@@ -337,6 +536,8 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
 
 ### 9. 实现字节码增强
 
+除了jdk的增强，其余组件的增强都在这里处理 。transform是具体的转化逻辑，with是添加的监听器
+
 ```
         agentBuilder.type(pluginFinder.buildMatch()) //要修改的类
                     .transform(new Transformer(pluginFinder)) //字节码修改逻辑，直接集成bytebuddy的类
@@ -344,6 +545,356 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
                     .with(new RedefinitionListener())
                     .with(new Listener())
                     .installOn(instrumentation);
+```
+
+#### 9.1 Transformer类
+
+Transformer是byteBuddy定义的接口，用来封装类的转换逻辑
+
+```
+   private static class Transformer implements AgentBuilder.Transformer {
+        private PluginFinder pluginFinder;
+
+        Transformer(PluginFinder pluginFinder) {
+            this.pluginFinder = pluginFinder;
+        }
+
+        //tranform主要是返回新的builder，进行类增强
+        //TypeDescription 是类定义
+        //ClassLoader是当前类的类加载器
+        @Override
+        public DynamicType.Builder<?> transform(final DynamicType.Builder<?> builder,
+                                                final TypeDescription typeDescription,
+                                                final ClassLoader classLoader,
+                                                final JavaModule module) {
+            //此处的classLoader是加载这个类的类加载器
+            LoadedLibraryCollector.registerURLClassLoader(classLoader);
+            //获取这个类的增强定义
+            List<AbstractClassEnhancePluginDefine> pluginDefines = pluginFinder.find(typeDescription);
+            if (pluginDefines.size() > 0) {
+                DynamicType.Builder<?> newBuilder = builder;
+                EnhanceContext context = new EnhanceContext();
+                for (AbstractClassEnhancePluginDefine define : pluginDefines) {
+                    //循环define
+                    DynamicType.Builder<?> possibleNewBuilder = define.define(
+                            typeDescription, newBuilder, classLoader, context);
+                    if (possibleNewBuilder != null) {
+                        newBuilder = possibleNewBuilder;
+                    }
+                }
+                if (context.isEnhanced()) {
+                    LOGGER.debug("Finish the prepare stage for {}.", typeDescription.getName());
+                }
+
+                return newBuilder;
+            }
+
+            LOGGER.debug("Matched class {}, but ignore by finding mechanism.", typeDescription.getTypeName());
+            return builder;
+        }
+    }
+```
+
+#### 9.2 define方法
+
+AbstractClassEnhancePluginDefine.define&#x20;
+
+```
+ 
+     public DynamicType.Builder<?> define(TypeDescription typeDescription, DynamicType.Builder<?> builder,
+        ClassLoader classLoader, EnhanceContext context) throws PluginException {
+        String interceptorDefineClassName = this.getClass().getName();
+        String transformClassName = typeDescription.getTypeName();
+        if (StringUtil.isEmpty(transformClassName)) {
+            LOGGER.warn("classname of being intercepted is not defined by {}.", interceptorDefineClassName);
+            return null;
+        }
+
+        LOGGER.debug("prepare to enhance class {} by {}.", transformClassName, interceptorDefineClassName);
+        WitnessFinder finder = WitnessFinder.INSTANCE;
+        /**
+         * find witness classes for enhance class
+         */
+        //判断要增强的类是不是存在，不存在就打warn日志
+        String[] witnessClasses = witnessClasses();
+        if (witnessClasses != null) {
+            for (String witnessClass : witnessClasses) {
+                if (!finder.exist(witnessClass, classLoader)) {
+                    LOGGER.warn("enhance class {} by plugin {} is not working. Because witness class {} is not existed.", transformClassName, interceptorDefineClassName, witnessClass);
+                    return null;
+                }
+            }
+        }
+        //判断要增强的方法是不是存在，不存在就打warn日志
+        List<WitnessMethod> witnessMethods = witnessMethods();
+        if (!CollectionUtil.isEmpty(witnessMethods)) {
+            for (WitnessMethod witnessMethod : witnessMethods) {
+                if (!finder.exist(witnessMethod, classLoader)) {
+                    LOGGER.warn("enhance class {} by plugin {} is not working. Because witness method {} is not existed.", transformClassName, interceptorDefineClassName, witnessMethod);
+                    return null;
+                }
+            }
+        }
+
+        /**
+         * find origin class source code for interceptor
+         */
+        DynamicType.Builder<?> newClassBuilder = this.enhance(typeDescription, builder, classLoader, context);
+
+        context.initializationStageCompleted();
+        LOGGER.debug("enhance class {} by {} completely.", transformClassName, interceptorDefineClassName);
+
+        return newClassBuilder;
+    } 
+```
+
+9.3 enhance方法
+
+enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里我们只看下enhanceInstance。
+
+```
+    protected DynamicType.Builder<?> enhance(TypeDescription typeDescription, DynamicType.Builder<?> newClassBuilder,
+                                             ClassLoader classLoader, EnhanceContext context) throws PluginException {
+        //增强静态方法
+        newClassBuilder = this.enhanceClass(typeDescription, newClassBuilder, classLoader);
+
+        //增强实例方法
+        newClassBuilder = this.enhanceInstance(typeDescription, newClassBuilder, classLoader, context);
+
+        return newClassBuilder;
+    }
+```
+
+#### 9.4 enhanceInstance 方法
+
+实例增强逻辑，其实现在ClassEnhancePluginDefine。
+
+```
+    protected DynamicType.Builder<?> enhanceInstance(TypeDescription typeDescription,
+        DynamicType.Builder<?> newClassBuilder, ClassLoader classLoader,
+        EnhanceContext context) throws PluginException {
+        //获取各种增强点
+        ConstructorInterceptPoint[] constructorInterceptPoints = getConstructorsInterceptPoints();
+        InstanceMethodsInterceptPoint[] instanceMethodsInterceptPoints = getInstanceMethodsInterceptPoints();
+        String enhanceOriginClassName = typeDescription.getTypeName();
+        boolean existedConstructorInterceptPoint = false;
+        if (constructorInterceptPoints != null && constructorInterceptPoints.length > 0) {
+            existedConstructorInterceptPoint = true;
+        }
+        boolean existedMethodsInterceptPoints = false;
+        if (instanceMethodsInterceptPoints != null && instanceMethodsInterceptPoints.length > 0) {
+            existedMethodsInterceptPoints = true;
+        }
+
+        /**
+         * nothing need to be enhanced in class instance, maybe need enhance static methods.
+         */
+        if (!existedConstructorInterceptPoint && !existedMethodsInterceptPoints) {
+            return newClassBuilder;
+        }
+
+        /**
+         * Manipulate class source code.<br/>
+         *
+         * new class need:<br/>
+         * 1.Add field, name {@link #CONTEXT_ATTR_NAME}.
+         * 2.Add a field accessor for this field.
+         *
+         * And make sure the source codes manipulation only occurs once.
+         *
+         */
+        //添加新的字段并设置private
+        if (!typeDescription.isAssignableTo(EnhancedInstance.class)) {
+            if (!context.isObjectExtended()) {
+                newClassBuilder = newClassBuilder.defineField(
+                    CONTEXT_ATTR_NAME, Object.class, ACC_PRIVATE | ACC_VOLATILE)
+                                                 .implement(EnhancedInstance.class)
+                                                 .intercept(FieldAccessor.ofField(CONTEXT_ATTR_NAME));
+                context.extendObjectCompleted();
+            }
+        }
+
+        /**
+         * 2. enhance constructors
+         */
+        //对构造器进行增强
+        if (existedConstructorInterceptPoint) {
+            for (ConstructorInterceptPoint constructorInterceptPoint : constructorInterceptPoints) {
+                if (isBootstrapInstrumentation()) {
+                    newClassBuilder = newClassBuilder.constructor(constructorInterceptPoint.getConstructorMatcher())
+                                                     .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.withDefaultConfiguration()
+                                                                                                                 .to(BootstrapInstrumentBoost
+                                                                                                                     .forInternalDelegateClass(constructorInterceptPoint
+                                                                                                                         .getConstructorInterceptor()))));
+                } else {
+                    newClassBuilder = newClassBuilder.constructor(constructorInterceptPoint.getConstructorMatcher())
+                                                     .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.withDefaultConfiguration()
+                                                                                                                 .to(new ConstructorInter(constructorInterceptPoint
+                                                                                                                     .getConstructorInterceptor(), classLoader))));
+                }
+            }
+        }
+
+        /**
+         * 3. enhance instance methods
+         */
+        //对实例方法进行增强
+        if (existedMethodsInterceptPoints) {
+            for (InstanceMethodsInterceptPoint instanceMethodsInterceptPoint : instanceMethodsInterceptPoints) {
+                String interceptor = instanceMethodsInterceptPoint.getMethodsInterceptor();
+                if (StringUtil.isEmpty(interceptor)) {
+                    throw new EnhanceException("no InstanceMethodsAroundInterceptor define to enhance class " + enhanceOriginClassName);
+                }
+                //junction是匹配的实例方法
+                ElementMatcher.Junction<MethodDescription> junction = not(isStatic()).and(instanceMethodsInterceptPoint.getMethodsMatcher());
+                if (instanceMethodsInterceptPoint instanceof DeclaredInstanceMethodsInterceptPoint) {
+                    junction = junction.and(ElementMatchers.<MethodDescription>isDeclaredBy(typeDescription));
+                }
+                if (instanceMethodsInterceptPoint.isOverrideArgs()) {
+                    if (isBootstrapInstrumentation()) {
+                        newClassBuilder = newClassBuilder.method(junction)
+                                                         .intercept(MethodDelegation.withDefaultConfiguration()
+                                                                                    .withBinders(Morph.Binder.install(OverrideCallable.class))
+                                                                                    .to(BootstrapInstrumentBoost.forInternalDelegateClass(interceptor)));
+                    } else {
+                        newClassBuilder = newClassBuilder.method(junction)
+                                                         .intercept(MethodDelegation.withDefaultConfiguration()
+                                                                                    .withBinders(Morph.Binder.install(OverrideCallable.class))
+                                                                                    .to(new InstMethodsInterWithOverrideArgs(interceptor, classLoader)));
+                    }
+                } else {
+                    if (isBootstrapInstrumentation()) {
+                        newClassBuilder = newClassBuilder.method(junction)
+                                                         .intercept(MethodDelegation.withDefaultConfiguration()
+                                                                                    .to(BootstrapInstrumentBoost.forInternalDelegateClass(interceptor)));
+                    } else {
+                        //method()是匹配的方法，intercept是拦截具体的实现
+                        newClassBuilder = newClassBuilder.method(junction)
+                                                         .intercept(MethodDelegation.withDefaultConfiguration()
+                                                                                    .to(new InstMethodsInter(interceptor, classLoader)));
+                    }
+                }
+            }
+        }
+        //返回新的builder
+        return newClassBuilder;
+    }
+```
+
+#### 9.5 InstMethodsInter方法
+
+我们只看下实例方法的增强类，和jdk增强模板是一样的，只是没有了prepare方法更简单了。在构造方法里回去加载intercepter。
+
+```
+public class InstMethodsInter {
+    private static final ILog LOGGER = LogManager.getLogger(InstMethodsInter.class);
+
+    /**
+     * An {@link InstanceMethodsAroundInterceptor} This name should only stay in {@link String}, the real {@link Class}
+     * type will trigger classloader failure. If you want to know more, please check on books about Classloader or
+     * Classloader appointment mechanism.
+     */
+    private InstanceMethodsAroundInterceptor interceptor;
+
+    /**
+     * @param instanceMethodsAroundInterceptorClassName class full name.
+     */
+    public InstMethodsInter(String instanceMethodsAroundInterceptorClassName, ClassLoader classLoader) {
+        try {
+            //加载interceptor,这里的类加载器是组件的类加载器
+            interceptor = InterceptorInstanceLoader.load(instanceMethodsAroundInterceptorClassName, classLoader);
+        } catch (Throwable t) {
+            throw new PluginException("Can't create InstanceMethodsAroundInterceptor.", t);
+        }
+    }
+
+    /**
+     * Intercept the target instance method.
+     *
+     * @param obj          target class instance.
+     * @param allArguments all method arguments
+     * @param method       method description.
+     * @param zuper        the origin call ref.
+     * @return the return value of target instance method.
+     * @throws Exception only throw exception because of zuper.call() or unexpected exception in sky-walking ( This is a
+     *                   bug, if anything triggers this condition ).
+     */
+    @RuntimeType
+    public Object intercept(@This Object obj, @AllArguments Object[] allArguments, @SuperCall Callable<?> zuper,
+        @Origin Method method) throws Throwable {
+        EnhancedInstance targetObject = (EnhancedInstance) obj;
+
+        MethodInterceptResult result = new MethodInterceptResult();
+        try {
+            interceptor.beforeMethod(targetObject, method, allArguments, method.getParameterTypes(), result);
+        } catch (Throwable t) {
+            LOGGER.error(t, "class[{}] before method[{}] intercept failure", obj.getClass(), method.getName());
+        }
+
+        Object ret = null;
+        try {
+            if (!result.isContinue()) {
+                ret = result._ret();
+            } else {
+                ret = zuper.call();
+            }
+        } catch (Throwable t) {
+            try {
+                interceptor.handleMethodException(targetObject, method, allArguments, method.getParameterTypes(), t);
+            } catch (Throwable t2) {
+                LOGGER.error(t2, "class[{}] handle method[{}] exception failure", obj.getClass(), method.getName());
+            }
+            throw t;
+        } finally {
+            try {
+                ret = interceptor.afterMethod(targetObject, method, allArguments, method.getParameterTypes(), ret);
+            } catch (Throwable t) {
+                LOGGER.error(t, "class[{}] after method[{}] intercept failure", obj.getClass(), method.getName());
+            }
+        }
+        return ret;
+    }
+}
+```
+
+#### 9.6 interceptor加载
+
+把当前类的类加载器当成parent，新生成一个AgentClassLoader 去加载拦截器。
+
+```
+    public static <T> T load(String className,
+        ClassLoader targetClassLoader) throws IllegalAccessException, InstantiationException, ClassNotFoundException, AgentPackageNotFoundException {
+        if (targetClassLoader == null) {
+            targetClassLoader = InterceptorInstanceLoader.class.getClassLoader();
+        }
+        String instanceKey = className + "_OF_" + targetClassLoader.getClass()
+                                                                   .getName() + "@" + Integer.toHexString(targetClassLoader
+            .hashCode());
+        Object inst = INSTANCE_CACHE.get(instanceKey);
+        if (inst == null) {
+            //加锁进行访问
+            INSTANCE_LOAD_LOCK.lock();
+            ClassLoader pluginLoader;
+            try {
+                //看看这个classloader是否存在
+                pluginLoader = EXTEND_PLUGIN_CLASSLOADERS.get(targetClassLoader);
+                if (pluginLoader == null) {
+                    //不存在就 用targetClassLoader->的父子关系new一个AgentClassLoader
+                    pluginLoader = new AgentClassLoader(targetClassLoader);
+                    EXTEND_PLUGIN_CLASSLOADERS.put(targetClassLoader, pluginLoader);
+                }
+            } finally {
+                INSTANCE_LOAD_LOCK.unlock();
+            }
+            //用新的AgentClassLoader加载这个interceptor
+            inst = Class.forName(className, true, pluginLoader).newInstance();
+            if (inst != null) {
+                INSTANCE_CACHE.put(instanceKey, inst);
+            }
+        }
+
+        return (T) inst;
+    }
 ```
 
 ### 10.启动skywalking的服务

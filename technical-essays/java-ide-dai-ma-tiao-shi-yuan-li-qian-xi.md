@@ -215,6 +215,6 @@ public class HelloWorldJDIExample {
 
 Debugger-agent premain方法里主要逻辑，用来处理capture和集合断点，具体代码没看懂哈哈。但可以看出debug的逻辑不是在agent里的，agent只是用来修改字节码，方便一些操作。
 
-![](<../.gitbook/assets/image (3) (1) (1).png>)
+![](<../.gitbook/assets/image (3) (1) (1) (1).png>)
 
 至此，IDE整个debug的机制我们已经了解的差不多了，看起来简单的debug实现起来也如此复杂，可能这就是程序的魅力，将复杂的功能封装成简单的使用方式提供给用户。我们没有深入到VM内部了解断点具体是怎么实现的，以我的能力估计是不能了，点到为止吧。
