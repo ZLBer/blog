@@ -152,9 +152,9 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 ### 3.2 PluginFinder的构造器
 
-从名字可以看出此类的作用查找，是根据TypeDescription来查找
+从名字可以看出此类的作用查找，是根据`TypeDescription`来查找
 
-List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应的增强插件。
+`List<AbstractClassEnhancePluginDefine>`，即根据类描述来查找器对应的增强插件。
 
 ```
    //PluginFinder初始化
@@ -190,13 +190,13 @@ List\<AbstractClassEnhancePluginDefine>，即根据类描述来查找器对应�
     }
 ```
 
-类匹配机制除了NameMatch(名称匹配，判断字符串相等)之外，还有RegexMatch(正则匹配)、PrefixMatch(前缀匹配)、AnnotationMatch(注解匹配，包括class和method的注解)，匹配机制还是挺丰富的。下图是ClassMatch的继承体系。
+类匹配机制除了`NameMatch`(名称匹配，判断字符串相等)之外，还有`RegexMatch`(正则匹配)、`PrefixMatch`(前缀匹配)、`AnnotationMatch`(注解匹配，包括class和method的注解)，匹配机制还是挺丰富的。下图是`ClassMatch`的继承体系。
 
 ![ClassMatch继承体系](<../../.gitbook/assets/image (3) (1).png>)
 
 ### 3.3 PluginFinder类的find方法
 
-find方法没出现在此处，但可以简单介绍下。
+`find`方法没出现在此处，但可以简单介绍下。
 
 ```
     public List<AbstractClassEnhancePluginDefine> find(TypeDescription typeDescription) {
@@ -219,9 +219,180 @@ find方法没出现在此处，但可以简单介绍下。
     }
 ```
 
+### 3.4 AbstractClassEnhancePluginDefine类细节
+
+每个java-agent实现的时候，都需要去实现这个类，大多数时候是他的子类`ClassInstanceMethodsEnhancePluginDefine`和`ClassStaticMethodsEnhancePluginDefine`
+
+![ClassEnhancePluginDefine体系结构](<../../.gitbook/assets/image (5).png>)
+
+`AbstractClassEnhancePluginDefine`定义的主要方法如下：
+
+* `ClassMatch enhanceClass` 要增强的类
+* `getConstructorsInterceptPoints`、`getInstanceMethodsInterceptPoints`、`getStaticMethodsInterceptPoints`：用以获取扩展点，包括 要匹配的方法、拦截器类、是否参数重写
+* `witnessClasses` `witnessMethods` 用来判断版本，即判断是不是存在期望的类
+
+```
+
+public abstract class AbstractClassEnhancePluginDefine {
+
+    private static final ILog LOGGER = LogManager.getLogger(AbstractClassEnhancePluginDefine.class);
+
+    /**
+     * New field name.
+     */
+    public static final String CONTEXT_ATTR_NAME = "_$EnhancedClassField_ws";
+
+    
+
+        /**
+         * find origin class source code for interceptor
+         */
+        DynamicType.Builder<?> newClassBuilder = this.enhance(typeDescription, builder, classLoader, context);
+
+        context.initializationStageCompleted();
+        LOGGER.debug("enhance class {} by {} completely.", transformClassName, interceptorDefineClassName);
+
+        return newClassBuilder;
+    }
+
+
+    /**
+     * Begin to define how to enhance class. After invoke this method, only means definition is finished.
+     *
+     * @param typeDescription target class description
+     * @param newClassBuilder byte-buddy's builder to manipulate class bytecode.
+     * @return new byte-buddy's builder for further manipulation.
+     */
+    protected DynamicType.Builder<?> enhance(TypeDescription typeDescription, DynamicType.Builder<?> newClassBuilder,
+                                             ClassLoader classLoader, EnhanceContext context) throws PluginException {
+        //增强静态方法
+        newClassBuilder = this.enhanceClass(typeDescription, newClassBuilder, classLoader);
+
+        //增强实例方法
+        newClassBuilder = this.enhanceInstance(typeDescription, newClassBuilder, classLoader, context);
+
+        return newClassBuilder;
+    }
+
+    /**
+     * Enhance a class to intercept constructors and class instance methods.
+     *
+     * @param typeDescription target class description
+     * @param newClassBuilder byte-buddy's builder to manipulate class bytecode.
+     * @return new byte-buddy's builder for further manipulation.
+     */
+    protected abstract DynamicType.Builder<?> enhanceInstance(TypeDescription typeDescription,
+                                                     DynamicType.Builder<?> newClassBuilder, ClassLoader classLoader,
+                                                     EnhanceContext context) throws PluginException;
+
+    /**
+     * Enhance a class to intercept class static methods.
+     *
+     * @param typeDescription target class description
+     * @param newClassBuilder byte-buddy's builder to manipulate class bytecode.
+     * @return new byte-buddy's builder for further manipulation.
+     */
+    protected abstract DynamicType.Builder<?> enhanceClass(TypeDescription typeDescription, DynamicType.Builder<?> newClassBuilder,
+                                                  ClassLoader classLoader) throws PluginException;
+
+    /**
+     * Define the {@link ClassMatch} for filtering class.
+     *
+     * @return {@link ClassMatch}
+     */
+    protected abstract ClassMatch enhanceClass();
+
+    /**
+     * Witness classname list. Why need witness classname? Let's see like this: A library existed two released versions
+     * (like 1.0, 2.0), which include the same target classes, but because of version iterator, they may have the same
+     * name, but different methods, or different method arguments list. So, if I want to target the particular version
+     * (let's say 1.0 for example), version number is obvious not an option, this is the moment you need "Witness
+     * classes". You can add any classes only in this particular release version ( something like class
+     * com.company.1.x.A, only in 1.0 ), and you can achieve the goal.
+     */
+    protected String[] witnessClasses() {
+        return new String[] {};
+    }
+
+    protected List<WitnessMethod> witnessMethods() {
+        return null;
+    }
+
+    public boolean isBootstrapInstrumentation() {
+        return false;
+    }
+
+    /**
+     * Constructor methods intercept point. See {@link ConstructorInterceptPoint}
+     *
+     * @return collections of {@link ConstructorInterceptPoint}
+     */
+    public abstract ConstructorInterceptPoint[] getConstructorsInterceptPoints();
+
+    /**
+     * Instance methods intercept point. See {@link InstanceMethodsInterceptPoint}
+     *
+     * @return collections of {@link InstanceMethodsInterceptPoint}
+     */
+    public abstract InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints();
+
+    /**
+     * Instance methods intercept v2 point. See {@link InstanceMethodsInterceptV2Point}
+     *
+     * @return collections of {@link InstanceMethodsInterceptV2Point}
+     */
+    public abstract InstanceMethodsInterceptV2Point[] getInstanceMethodsInterceptV2Points();
+
+    /**
+     * Static methods intercept point. See {@link StaticMethodsInterceptPoint}
+     *
+     * @return collections of {@link StaticMethodsInterceptPoint}
+     */
+    public abstract StaticMethodsInterceptPoint[] getStaticMethodsInterceptPoints();
+
+    /**
+     * Instance methods intercept v2 point. See {@link InstanceMethodsInterceptV2Point}
+     *
+     * @return collections of {@link InstanceMethodsInterceptV2Point}
+     */
+    public abstract StaticMethodsInterceptV2Point[] getStaticMethodsInterceptV2Points();
+}
+```
+
+`ClassEnhancePluginDefine`是其实现类，实现了`enhanceClass和enhanceInstance`方法。
+
+当我们要去实现增强插件的时候，需要去集成这个类，然后再实现指定的方法即可。下面是一个扩展点的例子，是针对`Druid`连接池的采集。
+
+```
+   public StaticMethodsInterceptPoint[] getStaticMethodsInterceptPoints() {
+        return new StaticMethodsInterceptPoint[]{
+                new StaticMethodsInterceptPoint() {
+                    @Override
+                    //要扩展的方法
+                    public ElementMatcher<MethodDescription> getMethodsMatcher() {
+                        return named(ENHANCE_METHOD).and(takesArguments(Object.class, String.class));
+                    }
+            
+                    @Override
+                    //返回拦截器类
+                    public String getMethodsInterceptor() {
+                        return INTERCEPTOR_CLASS;
+                    }
+
+                    @Override
+                    public boolean isOverrideArgs() {
+                        return false;
+                    }
+                }
+        };
+    }
+```
+
+
+
 ## 4.初始化ByteBuddy
 
-利用ByteBuddy的AgentBuilder进行初始化构造，主要是忽略到一些类。
+利用`ByteBuddy`的`AgentBuilder`进行初始化构造，主要是忽略到一些类。
 
 ```
  final ByteBuddy byteBuddy = new ByteBuddy().with(TypeValidation.of(Config.Agent.IS_OPEN_DEBUGGING_CLASS));
@@ -247,7 +418,7 @@ find方法没出现在此处，但可以简单介绍下。
 
 ## 6.处理jdk注入
 
-BootstrapInstrumentBoost主要用来处理对jdk类的增强。
+`BootstrapInstrumentBoost`主要用来处理对jdk类的增强。
 
 ```
 agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
@@ -256,7 +427,7 @@ agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, ag
 
 ### 6.1 inject方法
 
-inject来进行jkd增强的具体构造
+`inject`来进行jkd增强的具体构造
 
 ```
    public static AgentBuilder inject(PluginFinder pluginFinder, Instrumentation instrumentation,
@@ -305,13 +476,13 @@ inject来进行jkd增强的具体构造
     }
 ```
 
-在classesTypeMap中添加的类都是要用BoostrapClassLoader去加载的，其中有一项是HIGH\_PRIORITY\_CLASSES 高优先类，我们看一下其具体的内容，这为后面的类加载打通通道。
+在`classesTypeMap`中添加的类都是要用`BoostrapClassLoader`去加载的，其中有一项是`HIGH_PRIORITY_CLASSES` 高优先类，我们看一下其具体的内容，这为后面的类加载打通通道。
 
 ![HIGH\_PRIORITY\_CLASSES](<../../.gitbook/assets/image (3).png>)
 
 ### 6.2 prepareJREInstrumentation方法
 
-根据不同的模板为bytebuddy生成jdk的注入代码
+根据不同的模板为`bytebuddy`生成jdk的注入代码
 
 ```
     private static boolean prepareJREInstrumentation(PluginFinder pluginFinder,
@@ -393,7 +564,7 @@ inject来进行jkd增强的具体构造
 
 ### 6.4 InstanceMethodInterTemplate模板类
 
-我们看一下模板具体是怎么样的，这是根据byteBuddy做的模板，prepare方法理解起来比较困难，我已经做了详细的注释。除此之外，还有ConstructorInterTemplate、StaticMethodInterTemplate等等。
+我们看一下模板具体是怎么样的，这是根据byteBuddy做的模板，`prepare`方法理解起来比较困难，我已经做了详细的注释。除此之外，还有`ConstructorInterTemplate`、`StaticMethodInterTemplate`等等。
 
 ```
 public class InstanceMethodInterTemplate {
@@ -528,7 +699,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
 
 ## 9. 实现字节码增强
 
-除了jdk的增强，其余组件的增强都在这里处理 。transform是具体的转化逻辑，with是添加监听器，installOn进行字节码增强替换。
+除了jdk的增强，其余组件的增强都在这里处理 。`transform`是具体的转化逻辑，`with`是添加监听器，`installOn`进行字节码增强替换。
 
 ```
         agentBuilder.type(pluginFinder.buildMatch()) //要修改的类
@@ -541,7 +712,7 @@ agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, ed
 
 ### 9.1 Transformer类
 
-Transformer是byteBuddy定义的接口，用来封装类的转换逻辑
+`Transformer`是`byteBuddy`定义的接口，用来封装类的转换逻辑
 
 ```
    private static class Transformer implements AgentBuilder.Transformer {
@@ -589,7 +760,7 @@ Transformer是byteBuddy定义的接口，用来封装类的转换逻辑
 
 ### 9.2 define方法
 
-AbstractClassEnhancePluginDefine.define&#x20;
+`AbstractClassEnhancePluginDefine.define` 来对类进行重新定义。
 
 ```
  
@@ -642,7 +813,7 @@ AbstractClassEnhancePluginDefine.define&#x20;
 
 ### 9.3 enhance方法
 
-enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里我们只看下enhanceInstance。
+`enhance`是增强逻辑的入口，包括`enhanceClass`和`enhanceInstance`。这里我们只看下`enhanceInstance`。
 
 ```
     protected DynamicType.Builder<?> enhance(TypeDescription typeDescription, DynamicType.Builder<?> newClassBuilder,
@@ -659,7 +830,7 @@ enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里�
 
 ### 9.4 enhanceInstance 方法
 
-实例增强逻辑，其实现在ClassEnhancePluginDefine。
+实例增强逻辑，其实现在`ClassEnhancePluginDefine`。
 
 ```
     protected DynamicType.Builder<?> enhanceInstance(TypeDescription typeDescription,
@@ -775,7 +946,7 @@ enhance是增强逻辑的入口，包括enhanceClass和enhanceInstance。这里�
 
 ### 9.5 InstMethodsInter方法
 
-我们只看下实例方法的增强类，和jdk增强模板是一样的，只是没有了prepare方法更简单了。在构造方法里回去加载intercepter。
+我们只看下实例方法的增强类，和jdk增强模板是一样的，只是没有了`prepare`方法更简单了。在构造方法里回去加载`intercepter`。
 
 ```
 public class InstMethodsInter {
@@ -851,7 +1022,7 @@ public class InstMethodsInter {
 
 ### 9.6 interceptor加载
 
-把当前类的类加载器当成parent，新生成一个AgentClassLoader 去加载拦截器。
+把当前类的类加载器当成parent加载器，新生成一个`AgentClassLoader` 去加载拦截器。
 
 ```
     public static <T> T load(String className,
@@ -891,7 +1062,7 @@ public class InstMethodsInter {
 
 ## 10.启动skywalking的服务
 
-加载skywalking定义的服务 BootService
+加载skywalking定义的服务 `BootService`
 
 ```
 ServiceManager.INSTANCE.boot();
@@ -964,9 +1135,9 @@ ServiceManager.INSTANCE.boot();
     }
 ```
 
-可以看下BootService spi定义文件中所有的实现：JVMService和JVMMetricsSender前者负责采集jvm的数据，后者负责向aop发送数据。GRPCChannelManager负责管理grpc的连接。TraceSegmentServiceClient负责将Trace数据发送到aop。MeterService和MeterSender分别负责Metrics的注册和发送。SamplingService负责采样相关的。LogReportServiceClient负责日志的上报。、KafkaXXX是上报逻辑的kafka实现，因为skywalking的上报分为直接上报和消息队列间接上报。
+可以看下`BootService` spi定义文件中所有的实现：`JVMService`和`JVMMetricsSender`前者负责采集jvm的数据，后者负责向aop发送数据。`GRPCChannelManager`负责管理grpc的连接。`TraceSegmentServiceClient`负责将Trace数据发送到aop。`MeterService`和`MeterSender`分别负责Metrics的注册和发送。`SamplingService`负责采样相关的。`LogReportServiceClient`负责日志的上报。、`KafkaXXX`是上报逻辑的kafka实现，因为skywalking的上报分为直接上报和消息队列间接上报。
 
-![service spi](<../../.gitbook/assets/image (4).png>)
+![service spi](<../../.gitbook/assets/image (4) (1).png>)
 
 ### 10.3 prepare方法
 
@@ -987,4 +1158,4 @@ ServiceManager.INSTANCE.boot();
 
 
 
-至此，skywalking-agent端的启动流程我们就分析完毕了，我觉得自己都看懂了，但是写出了可能就不好理解了，信息的传播毕竟是熵减的嘛，哈哈哈。
+至此，`skywalking-agent`端的启动流程我们就分析完毕了，我觉得自己都看懂了，但是写出了可能就不好理解了，信息的传播毕竟是熵减的嘛，哈哈哈。
