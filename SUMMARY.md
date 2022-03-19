@@ -13,5 +13,6 @@
   * [Skywalking解析](technical-essays/skywalking-jie-xi.md)
     * [skywalking介绍](technical-essays/skywalking-jie-xi/skywalking-jie-shao.md)
     * [skywalking-agent启动流程](technical-essays/skywalking-jie-xi/skywalkingagent-qi-dong-liu-cheng.md)
+    * [skywalking 指标采集](technical-essays/skywalking-jie-xi/skywalking-zhi-biao-cai-ji.md)
 * [Other Essays](other-essays/README.md)
   * [信息论学习](other-essays/xin-xi-lun-xue-xi.md)
