@@ -4,7 +4,7 @@ description: Skywalking metrics collection
 
 # skywalking 指标采集
 
-## metrics类
+## metrics数据结构
 
 Counter、Gauge、Histogram是skywalking支持的metrics累行，均继承自`BaseMeter`，`BaseMeter`有个`MeterId`字段，还封装了`getName`、`getTag`、`transform`(转成grpc格式)等方法。
 
