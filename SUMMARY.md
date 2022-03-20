@@ -13,6 +13,8 @@
   * [Skywalking解析](technical-essays/skywalking-jie-xi.md)
     * [skywalking介绍](technical-essays/skywalking-jie-xi/skywalking-jie-shao.md)
     * [skywalking-agent启动流程](technical-essays/skywalking-jie-xi/skywalkingagent-qi-dong-liu-cheng.md)
+    * [skywalking基础组件-DataCarrier](technical-essays/skywalking-jie-xi/skywalking-ji-chu-zu-jian-datacarrier.md)
     * [skywalking 指标采集](technical-essays/skywalking-jie-xi/skywalking-zhi-biao-cai-ji.md)
+    * [skywalking 日志采集](technical-essays/skywalking-jie-xi/skywalking-ri-zhi-cai-ji.md)
 * [Other Essays](other-essays/README.md)
   * [信息论学习](other-essays/xin-xi-lun-xue-xi.md)

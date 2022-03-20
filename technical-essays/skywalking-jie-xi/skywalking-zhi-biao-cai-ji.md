@@ -1,5 +1,5 @@
 ---
-description: Skywalking metrics collection
+description: Skywalking metrics collect
 ---
 
 # skywalking 指标采集

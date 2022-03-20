@@ -1137,7 +1137,7 @@ ServiceManager.INSTANCE.boot();
 
 可以看下`BootService` spi定义文件中所有的实现：`JVMService`和`JVMMetricsSender`前者负责采集jvm的数据，后者负责向aop发送数据。`GRPCChannelManager`负责管理grpc的连接。`TraceSegmentServiceClient`负责将Trace数据发送到aop。`MeterService`和`MeterSender`分别负责Metrics的注册和发送。`SamplingService`负责采样相关的。`LogReportServiceClient`负责日志的上报。、`KafkaXXX`是上报逻辑的kafka实现，因为skywalking的上报分为直接上报和消息队列间接上报。
 
-![service spi](<../../.gitbook/assets/image (4) (1).png>)
+![service spi](<../../.gitbook/assets/image (4) (1) (1).png>)
 
 ### 10.3 prepare方法
 
