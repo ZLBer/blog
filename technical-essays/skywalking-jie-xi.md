@@ -16,7 +16,5 @@ description: Analysis of  Skywalking
 
 ## [skywalking 指标采集](skywalking-jie-xi/skywalking-zhi-biao-cai-ji.md)
 
-## skywalking 日志采集
-
-## skywalking-oap接收
+## [skywalking 日志采集](skywalking-jie-xi/skywalking-ri-zhi-cai-ji.md)
 
