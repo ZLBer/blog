@@ -10,6 +10,8 @@ description: Analysis of  Skywalking
 
 ## skywalking-aop启动流程
 
+## [skywalking基础组件-DataCarrier](skywalking-jie-xi/skywalking-ji-chu-zu-jian-datacarrier.md)
+
 ## skywalking 链路采集
 
 ## [skywalking 指标采集](skywalking-jie-xi/skywalking-zhi-biao-cai-ji.md)
