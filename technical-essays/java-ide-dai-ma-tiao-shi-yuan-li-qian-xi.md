@@ -211,7 +211,7 @@ public class HelloWorldJDIExample {
 
 此外IDE还会启动一个java-agent，比如IDEA中的agent叫 `Debugger-agent.jar` ,看了下大概是去捕获动态修改的字段值，然后再塞到代码中去，因为在调试过程中，允许我们手动去set value去改变程序的运行结果。
 
-![](<../.gitbook/assets/image (2) (1) (1).png>)
+![](<../.gitbook/assets/image (2) (1) (1) (1).png>)
 
 Debugger-agent premain方法里主要逻辑，用来处理capture和集合断点，具体代码没看懂哈哈。但可以看出debug的逻辑不是在agent里的，agent只是用来修改字节码，方便一些操作。
 

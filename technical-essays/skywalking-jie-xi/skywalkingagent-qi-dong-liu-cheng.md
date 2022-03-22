@@ -98,7 +98,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 首先要知道什么是Plugin，看一下下图就大概明白了，此处插件的意思就是针对每个组件的各种采集逻辑。
 
-![plugins](<../../.gitbook/assets/image (2).png>)
+![plugins](<../../.gitbook/assets/image (2) (1).png>)
 
 有两个重要的步骤`loadPlugins()` ,`new PluginFinder()`,我们依次来分析。
 
