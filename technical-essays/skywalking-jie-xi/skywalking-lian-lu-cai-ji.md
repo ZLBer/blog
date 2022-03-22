@@ -322,13 +322,13 @@ public class ExitSpan extends StackBasedTracingSpan implements ExitTypeSpan {
 
 当前Span没有任何操作，其方法都是空实现，是为了统一处理Span。配置 `IgnoredTracerContext` 一起使用，在 `IgnoredTracerContext` 声明单例 ，以减少不收集 Span 时的对象创建，达到减少内存使用和 GC 时间。
 
-## Context
+## Context链路上下文
 
 TracingContext是是链路追踪的上下文。其继承结构如下：
 
 ![TracingContext impl](<../../.gitbook/assets/image (2).png>)
 
-### AbstractTracerContext
+#### AbstractTracerContext
 
 是顶层抽象逻辑，封装了对跨进程和跨线程的方法。
 
@@ -937,6 +937,87 @@ Dubbo要区分服务提供者和服务调用者，提供者要创建EntrySpan，
 7. Tomcat方法返回，结束链路，调用stopSpan，因为栈空了，则context.finish,链路信息发送到aop。
 8. aop收到完整的链路信息，组装数据。
 
-## Trace数据接收
+## Traces数据发送
+
+`TraceSegmentServiceClient`负责`Trace`数据的存储和发送。
+
+存数据的发放，其实现`TracingContextListener`的方法，`context.finish`之后会通知此监听器。
+
+```
+    @Override
+    public void afterFinished(TraceSegment traceSegment) {
+        if (traceSegment.isIgnore()) {
+            return;
+        }
+        if (!carrier.produce(traceSegment)) {
+            if (LOGGER.isDebugEnable()) {
+                LOGGER.debug("One trace segment has been abandoned, cause by buffer is full.");
+            }
+        }
+    }
+```
+
+数据处理方法:
+
+```
+    @Override
+    public void consume(List<TraceSegment> data) {
+        if (CONNECTED.equals(status)) {
+            final GRPCStreamServiceStatus status = new GRPCStreamServiceStatus(false);
+            StreamObserver<SegmentObject> upstreamSegmentStreamObserver = serviceStub.withDeadlineAfter(
+                Config.Collector.GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
+            ).collect(new StreamObserver<Commands>() {
+                @Override
+                public void onNext(Commands commands) {
+                    //处理aop返回的command
+                    ServiceManager.INSTANCE.findService(CommandService.class)
+                                           .receiveCommand(commands);
+                }
+
+                @Override
+                public void onError(
+                    Throwable throwable) {
+                    //处理错误
+                    status.finished();
+                    if (LOGGER.isErrorEnable()) {
+                        LOGGER.error(
+                            throwable,
+                            "Send UpstreamSegment to collector fail with a grpc internal exception."
+                        );
+                    }
+                    ServiceManager.INSTANCE
+                        .findService(GRPCChannelManager.class)
+                        .reportError(throwable);
+                }
+
+                @Override
+                public void onCompleted() {
+                    status.finished();
+                }
+            });
+
+            try {
+                //遍历data发送
+                for (TraceSegment segment : data) {
+                    SegmentObject upstreamSegment = segment.transform();
+                    upstreamSegmentStreamObserver.onNext(upstreamSegment);
+                }
+            } catch (Throwable t) {
+                LOGGER.error(t, "Transform and send UpstreamSegment to collector fail.");
+            }
+
+            upstreamSegmentStreamObserver.onCompleted();
+           //等待发送完毕
+            status.wait4Finish();
+            segmentUplinkedCounter += data.size();
+        } else {
+            segmentAbandonedCounter += data.size();
+        }
+
+        printUplinkStatus();
+    }
+```
+
+## Traces数据接收
 
 TODO:
