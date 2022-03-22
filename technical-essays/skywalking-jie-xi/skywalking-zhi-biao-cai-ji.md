@@ -388,7 +388,7 @@ Metrics的收集有`MeterService`负责，调用`register`方法对meter进行�
 
 除了默认的`MeterSender`之外，还有`KafkaMeterSender`的覆盖实现，可以将`metrics`数据发送到消息队列。
 
-## Metrics接收
+## Metrics数据接收
 
 我们在看一下aop的代码，看下metrics是如何接收的，进入org.apache.skywalking.oap.server.receiver.meter 包：
 

@@ -937,3 +937,6 @@ Dubbo要区分服务提供者和服务调用者，提供者要创建EntrySpan，
 7. Tomcat方法返回，结束链路，调用stopSpan，因为栈空了，则context.finish,链路信息发送到aop。
 8. aop收到完整的链路信息，组装数据。
 
+## Trace数据接收
+
+TODO:

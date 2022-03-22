@@ -156,6 +156,6 @@ public void boot() throws Throwable {
 
 到此`LogData`便通过GRPC被发送到AOP后端。
 
-## Logs接收
+## Logs数据接收
 
 TODO：
