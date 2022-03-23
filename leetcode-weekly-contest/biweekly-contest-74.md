@@ -4,6 +4,8 @@ description: https://leetcode-cn.com/contest/biweekly-contest-74/
 
 # Biweekly Contest 74
 
+Ranking: 282 / 5442
+
 ### [**2206. 将数组划分成相等数对**](https://leetcode-cn.com/problems/divide-array-into-equal-pairs/) **** :star:****
 
 > 给你一个整数数组 nums ，它包含 2 \* n 个整数。
