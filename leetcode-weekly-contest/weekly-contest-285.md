@@ -4,7 +4,7 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
 
 # Weekly Contest 285
 
-[**2210. 统计数组中峰和谷的数量**](https://leetcode-cn.com/problems/count-hills-and-valleys-in-an-array/)
+### [**2210. 统计数组中峰和谷的数量**](https://leetcode-cn.com/problems/count-hills-and-valleys-in-an-array/) **** :star:****
 
 > 给你一个下标从 0 开始的整数数组 nums 。如果两侧距 i 最近的不相等邻居的值均小于 nums\[i] ，则下标 i 是 nums 中，某个峰的一部分。类似地，如果两侧距 i 最近的不相等邻居的值均大于 nums\[i] ，则下标 i 是 nums 中某个谷的一部分。对于相邻下标 i 和 j ，如果 nums\[i] == nums\[j] ， 则认为这两下标属于 同一个 峰或谷。
 >
@@ -38,7 +38,7 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
     }
 ```
 
-[**2211. 统计道路上的碰撞次数**](https://leetcode-cn.com/problems/count-collisions-on-a-road/)
+### [**2211. 统计道路上的碰撞次数**](https://leetcode-cn.com/problems/count-collisions-on-a-road/) **** :star::star:****
 
 > 在一条无限长的公路上有 n 辆汽车正在行驶。汽车按从左到右的顺序按从 0 到 n - 1 编号，每辆车都在一个 独特的 位置。
 >
@@ -100,7 +100,7 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
     }*/
 ```
 
-[**2212. 射箭比赛中的最大得分**](https://leetcode-cn.com/problems/maximum-points-in-an-archery-competition/)
+### [**2212. 射箭比赛中的最大得分**](https://leetcode-cn.com/problems/maximum-points-in-an-archery-competition/) **** :star::star:****
 
 > Alice 和 Bob 是一场射箭比赛中的对手。比赛规则如下：
 >
@@ -158,7 +158,7 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
     }
 ```
 
-[**2213. 由单个字符重复的最长子字符串**](https://leetcode-cn.com/problems/longest-substring-of-one-repeating-character/)
+### [**2213. 由单个字符重复的最长子字符串**](https://leetcode-cn.com/problems/longest-substring-of-one-repeating-character/) **** :star::star::star:
 
 > 给你一个下标从 0 开始的字符串 s 。另给你一个下标从 0 开始、长度为 k 的字符串 queryCharacters ，一个下标从 0 开始、长度也是 k 的整数 下标 数组 queryIndices ，这两个都用来描述 k 个查询。
 >
@@ -234,28 +234,34 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
                 //合并左区间
                 if (index > 0 && chars[index] == chars[index - 1]) {
                     Integer lowerKey = map.lowerKey(index);
+                    //删除左区间
                     map.remove(index);
                     counter.put(index - lowerKey, counter.getOrDefault(index - lowerKey, 0) - 1);
                     if (counter.get(index - lowerKey) == 0) {
                         counter.remove(index - lowerKey);
                     }
+                    //删除中间区间
                     counter.put(1, counter.getOrDefault(1, 0) - 1);
                     if (counter.get(1) == 0) {
                         counter.remove(1);
                     }
+                    //添加新的区间
                     counter.put(index - lowerKey + 1, counter.getOrDefault(index - lowerKey + 1, 0) + 1);
                 }
                 //合并右区间
                 if (index < n - 1 && chars[index] == chars[index + 1]) {
                     Integer higherKey = map.higherKey(index);
-                    map.remove(higherKey);
                     Integer hhigherKey = map.higherKey(higherKey);
+
+                    //删除右区间
+                    map.remove(higherKey);
                     counter.put(hhigherKey - higherKey, counter.getOrDefault(hhigherKey - higherKey, 0) - 1);
                     if (counter.get(hhigherKey - higherKey) == 0) {
                         counter.remove(hhigherKey - higherKey);
                     }
-
+                    //重新获取index所在的区间
                     Integer floorKey = map.floorKey(index);
+                    //更新区间
                     counter.put(hhigherKey - floorKey, counter.getOrDefault(hhigherKey - floorKey, 0) + 1);
                     counter.put(index - floorKey + 1, counter.getOrDefault(index - floorKey + 1, 0) - 1);
                     if (counter.get(index - floorKey + 1) == 0) {
