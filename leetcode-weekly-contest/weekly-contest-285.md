@@ -178,16 +178,27 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
 {% hint style="info" %}
 困难题，周赛的时候没做出来，后面看了一下思路，自己也写了好久，是最近写的最长的题目了。
 
-纯模拟，思路如下：用TreeMap保存区间的左区间和区间字符，另用一个TreeMap来保存区间长度和频率 counter。遍历queryIndices:
+一、纯模拟，思路如下：用TreeMap保存区间的左区间和区间字符，另用一个TreeMap来保存区间长度和频率 counter。遍历queryIndices:
 
 &#x20;           1.找出indice的区间，将区间分成三部分(删除原区间，添加左中右三个区间，可能<3个区间，因为indice可能位于区间左端点\右断点)，且需要更新counter(删除原区间长度，更新三个区间长度)。
 
 &#x20;           2.判断左区间和中间区间能不能合并，能合并的话，需要再次更新TreeMap和counter
 
 &#x20;           3.判断中间区间和右区间能不能合并，这里需要重新获取indice的区间，因为左区间可能发生合并。
+
+二、线段树思想，其实比直接操作区间_想起来更简单_。 结合线段树特性，每个节点用三个变量表示状态，ALL表示区间内单个字符串连续最大程度，LEFT表示从区间左端点开始的单个字符串连续长度，RIGHT表示从区间右端点开始的单个字符串连续长度。
+
+&#x20;     初始化树build方法，叶子节点的ALL\LEFT\RIGHT三个数组都初试成1，然后递归返回的依次执行merge操作。
+
+&#x20;     合并区间merge方法，判断该节点的左右区间是否可以合并，不能合并仅需要赋值。若能合并，则再次更新ALL数组，此时还需要判断LEFT是不是可以延长到右区间，同理判断RIGHT是不是可以延长到左区间。
+
+&#x20;    查询query方法，首先递归到底更改字符的值，递归返回时执行merge操作，因为有字符发生变化，最后返回ALL的值即可。
+
+&#x20;    &#x20;
 {% endhint %}
 
 ```
+    //模拟区间合并
     static public int[] longestRepeating(String s, String queryCharacters, int[] queryIndices) {
         TreeMap<Integer, Character> map = new TreeMap<>();
         TreeMap<Integer, Integer> counter = new TreeMap<>();
@@ -272,6 +283,73 @@ description: https://leetcode-cn.com/contest/weekly-contest-285/
             }
             res[i] = counter.lastKey();
 
+        }
+        return res;
+    }
+```
+
+```
+   //用区间树的思想来做
+   int[] all;
+    int[] left;
+    int[] right;
+    char[] chars;
+
+    void merge(int cur, int l, int r) {
+        if (l == r) return;
+        int nl = cur * 2, nr = nl + 1;
+        int mid = (l + r) / 2;
+        all[cur] = Math.max(all[nl], all[nr]);
+        left[cur] = left[nl];
+        right[cur] = right[nr];
+
+        if (chars[mid] == chars[mid + 1]) {
+            all[cur] = Math.max(all[cur], left[nr] + right[nl]);
+            if (all[nl] == mid - l + 1) {
+                left[cur] += left[nr];
+            }
+            if (all[nr] == r - mid) {
+                right[cur] += right[nl];
+            }
+        }
+    }
+
+    int query(int cur, int l, int r, int index, char c) {
+        if (l == r) {
+            chars[index] = c;
+        } else {
+            int nl = cur * 2, nr = nl + 1;
+            int mid = (l + r) / 2;
+            if (index <= mid) query(nl, l, mid, index, c);
+            else query(nr, mid + 1, r, index, c);
+            merge(cur, l, r);
+        }
+        return all[cur];
+    }
+
+    void build(int cur, int l, int r) {
+        if (l == r) {
+            all[cur] = left[cur] = right[cur] = 1;
+            return;
+        }
+        int nl = cur * 2, nr = nl + 1;
+        int mid = (l + r) / 2;
+        build(nl, l, mid);
+        build(nr, mid + 1, r);
+        merge(cur, l, r);
+    }
+
+    public int[] longestRepeating(String s, String queryCharacters, int[] queryIndices) {
+        chars = s.toCharArray();
+        int n = s.length();
+        int max = 4 * (n + 1);
+        all = new int[max];
+        left = new int[max];
+        right = new int[max];
+        build(1, 0, n - 1);
+        int[] res = new int[queryCharacters.length()];
+        for (int i = 0; i < queryIndices.length; i++) {
+            res[i] = query(1, 0, n - 1, queryIndices[i], queryCharacters.charAt(i));
         }
         return res;
     }
