@@ -9,6 +9,8 @@
   * [Biweekly Contest 74](leetcode-weekly-contest/biweekly-contest-74.md)
   * [Weekly Contest 285](leetcode-weekly-contest/weekly-contest-285.md)
   * [Weekly Contest 286](leetcode-weekly-contest/weekly-contest-286.md)
+  * [Biweekly Contest 75](leetcode-weekly-contest/biweekly-contest-75.md)
+  * [Weekly Contest 287](leetcode-weekly-contest/weekly-contest-287.md)
 * [Article Translation](article-translation.md)
 * [Technical Essays](technical-essays/README.md)
   * [应用可观测性](technical-essays/ying-yong-ke-guan-ce-xing.md)
