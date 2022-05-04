@@ -4,7 +4,7 @@ description: https://leetcode-cn.com/contest/biweekly-contest-75/
 
 # Biweekly Contest 76
 
-ranking: 810 / 4477   被打扰的一周！
+810 / 4477   被打扰的一周！
 
 ### [**2239. 找到最接近 0 的数字**](https://leetcode-cn.com/problems/find-closest-number-to-zero/) **** :star:
 
