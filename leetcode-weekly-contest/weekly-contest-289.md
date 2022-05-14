@@ -4,7 +4,7 @@ description: https://leetcode-cn.com/contest/weekly-contest-289/
 
 # Weekly Contest 289
 
-ranking: 520 / 7293 &#x20;
+520 / 7293 &#x20;
 
 ### [**2243. 计算字符串的数字和**](https://leetcode-cn.com/problems/calculate-digit-sum-of-a-string/) **** :star:
 
