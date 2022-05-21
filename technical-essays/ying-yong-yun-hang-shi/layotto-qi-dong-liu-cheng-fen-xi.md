@@ -1,5 +1,6 @@
 ---
-description: 已经添加到layotto源码分析x
+description: >-
+  已经添加到layotto源码分析系列:https://mosn.io/layotto/#/zh/blog/code/start_process/start_process
 ---
 
 # layotto启动流程分析
