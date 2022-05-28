@@ -223,7 +223,7 @@ PluginFinder pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins()
 
 每个java-agent实现的时候，都需要去实现这个类，大多数时候是他的子类`ClassInstanceMethodsEnhancePluginDefine`和`ClassStaticMethodsEnhancePluginDefine`
 
-![ClassEnhancePluginDefine体系结构](<../../.gitbook/assets/image (5).png>)
+![ClassEnhancePluginDefine体系结构](<../../.gitbook/assets/image (5) (1).png>)
 
 `AbstractClassEnhancePluginDefine`定义的主要方法如下：
 
