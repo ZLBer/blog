@@ -1,5 +1,5 @@
 ---
-description: https://leetcode.cn/contest/weekly-contest-293/
+description: https://leetcode.cn/contest/weekly-contest-294/
 ---
 
 # Weekly Contest 294

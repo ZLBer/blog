@@ -1,164 +1,180 @@
 ---
-description: https://leetcode.cn/contest/weekly-contest-293/
+description: https://leetcode.cn/contest/weekly-contest-295/
 ---
 
 # Weekly Contest 295
 
-ranking: 109 / 5721
+ranking: 679 / 6447
 
 
 
-### [**2293. 极大极小游戏**](https://leetcode.cn/problems/min-max-game/) ****&#x20;
+### [**2287. 重排字符形成目标字符串**](https://leetcode.cn/problems/rearrange-characters-to-make-target-string/)
 
 {% hint style="info" %}
-简单题，模拟
+简单题，统计次数求最大值就行
 {% endhint %}
 
 ```
-    public int minMaxGame(int[] nums) {
-
-        while (nums.length > 1) {
-            int[] newNum = new int[nums.length / 2];
-            for (int i = 0; i < newNum.length; i++) {
-                if (i % 2 == 0) {
-                    newNum[i] = Math.min(nums[2 * i], nums[2 * i + 1]);
-                } else {
-                    newNum[i] = Math.max(nums[2 * i], nums[2 * i + 1]);
-                }
-            }
-            nums = newNum;
+  public int rearrangeCharacters(String s, String target) {
+        int[] count = new int[26];
+        for (char c : s.toCharArray()) {
+            count[c - 'a']++;
         }
-        return nums[0];
+        int[] need = new int[26];
+        for (char c : target.toCharArray()) {
+            need[c - 'a']++;
+        }
+        int min = Integer.MAX_VALUE;
+        for (int i = 0; i < count.length; i++) {
+            if (need[i] == 0) continue;
+            min = Math.min(min, count[i] / need[i]);
+        }
+        return min;
     }
 ```
 
-### [**2294. 划分数组使最大差为 K**](https://leetcode.cn/problems/partition-array-such-that-maximum-difference-is-k/)
+
+
+### [**2288. 价格减免**](https://leetcode.cn/problems/apply-discount-to-prices/)
 
 {% hint style="info" %}
-中等题，排序，然后间距k为一组
+//中等题，写吐了，最后改成BigDecimal才解决了浮点问题 //改成long，不管后面多余的小数位
 {% endhint %}
 
 ```
-    public int partitionArray(int[] nums, int k) {
-        Arrays.sort(nums);
-        int ans = 0;
-        int pre = 0;
-        for (int i = 1; i < nums.length; i++) {
-            if (nums[i] - nums[pre] <= k) {
-                continue;
-            } else {
-                pre = i;
-                ans++;
+   public String discountPrices(String sentence, int discount) {
+        String[] s = sentence.split(" ");
+        for (int i = 0; i < s.length; i++) {
+            String t = s[i];
+            if (!t.startsWith("$") || t.length() == 1) continue;
+            boolean flag = true;
+            for (int j = 1; j < t.toCharArray().length; j++) {
+                if (!Character.isDigit(t.charAt(j))) {
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (flag) {
+                Long num = Long.parseLong(t.substring(1)) * (100 - discount); //原始价格
+                s[i] = "$" + num / 100 +'0';
+                num %= 10;
+                s[i] += ((num < 10) ?  "0"+num : num);
             }
         }
-        ans++;
 
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length - 1; i++) {
+            sb.append(s[i] + " ");
+        }
+        sb.append(s[s.length - 1]);
+        return sb.toString();
+    }
+```
+
+
+
+### [**2289. 使数组按非递减顺序排列**](https://leetcode.cn/problems/steps-to-make-array-non-decreasing/)
+
+{% hint style="info" %}
+//中等题，一轮一轮模拟
+
+&#x20;//单调栈
+{% endhint %}
+
+```
+  public int totalSteps(int[] nums) {
+        Deque<int[]> deque = new LinkedList<>();
+        int ans=0;
+        for (int num : nums) {
+            int maxT=0;
+            while (!deque.isEmpty()&&deque.peekLast()[0]<=num){
+                maxT=Math.max(maxT,deque.pollLast()[1]);
+            }
+            maxT=deque.isEmpty()?0:maxT+1;
+            ans=Math.max(maxT,ans);
+            deque.addLast(new int[]{num,maxT});
+        }
         return ans;
     }
 
+   /* static public int totalSteps(int[] nums) {
+        int ans = 0;
+
+        TreeSet<Integer> a = new TreeSet<>();
+        TreeMap<Integer, Integer> b = new TreeMap<>();
+        TreeMap<Integer, Integer> c = new TreeMap<>();
+
+        for (int i = 0; i < nums.length; i++) {
+            a.add(i);
+        }
+        for (int i = 0; i < nums.length - 1; i++) {
+            if (nums[i] > nums[i + 1]) b.put(i, i + 1);
+        }
+        while (!b.isEmpty()) {
+            ans++;
+            for (Map.Entry<Integer, Integer> entry : b.entrySet()) {
+                a.remove(entry.getValue());
+            }
+            for (Map.Entry<Integer, Integer> entry : b.entrySet()) {
+                Integer last = a.higher(entry.getKey());
+                if (last == null) continue;
+                if (nums[last] < nums[entry.getKey()]) {
+                    c.put(entry.getKey(), last);
+                }
+            }
+            b = new TreeMap<>(c);
+            c.clear();
+
+        }
+        return ans;
+    }*/
 ```
 
 
 
-### [**2295. 替换数组中的元素**](https://leetcode.cn/problems/replace-elements-in-an-array/)
+### [**2290. 到达角落需要移除障碍物的最小数目**](https://leetcode.cn/problems/minimum-obstacle-removal-to-reach-corner/)
 
 {% hint style="info" %}
-//中等题，map记录数字的index，保证不会重复
+//困难题，不困难，优先级队列弹出最小花费即可，不然会TLE&#x20;
 
-&#x20;//或者先将operation操作连成一条链，只需要记录头尾两个操作，中间都是无关操作
+//或者可以01bfs，遇到0放在前面，遇到1放在后面，每次从前面取，这样每次取到的都是花费最小的，省去优先队列logn的开销
 {% endhint %}
 
 ```
-  public int[] arrayChange(int[] nums, int[][] operations) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int[] operation : operations) {
-            if (!map.containsKey(operation[0])) {
-                map.put(operation[1], operation[0]);
-            } else {
-                Integer begin = map.get(operation[0]);
-                map.remove(operation[0]);
-                map.put(operation[1], begin);
+    int[][] moves = new int[][]{
+            {0, 1}, {1, 0}, {0, -1}, {-1, 0}
+    };
+
+    public int minimumObstacles(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int[][] dp = new int[m + 1][n + 1];
+
+
+        //用pq优化可以过
+        PriorityQueue<int[]> queue = new PriorityQueue<>((a, b) -> a[2] - b[2]);
+        for (int[] ints : dp) {
+            Arrays.fill(ints, Integer.MAX_VALUE);
+        }
+        dp[0][0] = grid[0][0];
+        queue.add(new int[]{0, 0, grid[0][0]});
+        while (!queue.isEmpty()) {
+            int[] poll = queue.poll();
+            if (poll[0] == m - 1 && poll[1] == n - 1) {
+                return poll[2];
+            }
+            //System.out.println(poll[0] + " " + poll[1]);
+            for (int[] move : moves) {
+                int nx = move[0] + poll[0];
+                int ny = move[1] + poll[1];
+                if (nx >= 0 && nx < m && ny >= 0 && ny < n) {
+                    if (dp[nx][ny] <= poll[2] + grid[nx][ny]) continue;
+                    dp[nx][ny] = poll[2] + grid[nx][ny];
+                    queue.add(new int[]{nx, ny, dp[nx][ny]});
+                }
             }
         }
-
-        Map<Integer, Integer> mmap = new HashMap<>();
-        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
-            mmap.put(entry.getValue(), entry.getKey());
-        }
-
-        for (int i = 0; i < nums.length; i++) {
-            if (mmap.containsKey(nums[i])) {
-                nums[i] = mmap.get(nums[i]);
-            }
-        }
-        return nums;
-    }
-```
-
-```
-    //map保存num,index
-   public int[] arrayChange(int[] nums, int[][] operations) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            map.put(nums[i], i);
-        }
-
-        for (int[] operation : operations) {
-            Integer index = map.get(operation[0]);
-            nums[index] = operation[1];
-            map.remove(operation[0]);
-            map.put(operation[1], index);
-        }
-        return nums;
-    }
-```
-
-### [**2296. 设计一个文本编辑器**](https://leetcode.cn/problems/design-a-text-editor/)
-
-{% hint style="info" %}
-//困难题，直接用StringBuilder模拟，没想到一次就过了..&#x20;
-
-//还可以用双向链表、对顶栈等
-{% endhint %}
-
-```
- class TextEditor {
-        StringBuilder sb = new StringBuilder();
-        int cur = 0;
-
-        public TextEditor() {
-
-        }
-
-        public void addText(String text) {
-            sb.insert(cur, text);
-            cur += text.length();
-        }
-
-        public int deleteText(int k) {
-
-            int ans = Math.min(k, cur);
-            int begin = cur - ans;
-            sb.delete(begin, begin + ans);
-            cur -= ans;
-            return ans;
-        }
-
-        public String cursorLeft(int k) {
-            int ans = Math.min(k, cur);
-            cur -= ans;
-            ans = Math.min(cur, 10);
-            int begin = cur - ans;
-            return sb.substring(begin, begin + ans);
-        }
-
-        public String cursorRight(int k) {
-            int ans = Math.min(k, sb.length() - cur);
-            cur += ans;
-            ans = Math.min(cur, 10);
-            int begin = cur - ans;
-            return sb.substring(begin, begin + ans);
-        }
+        return dp[m - 1][n - 1];
     }
 ```
 
